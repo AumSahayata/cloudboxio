@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/AumSahayata/cloudboxio/db"
 	"github.com/gofiber/fiber/v2"
@@ -76,12 +78,27 @@ func ListFiles(c *fiber.Ctx) error {
 }
 
 func DownloadFile(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
 	// Get file name from the endpoint parameters
 	filename := c.Params("filename")
 
-	// Construct the full file path
-	path := filepath.Join("uploads", userID, filename)
+	// Decode %20, %3F etc. to proper characters
+	filename, err := url.QueryUnescape(filename)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid filename"})
+	}
+
+	// Prevent path traversal (e.g., filename = "../../passwd")
+	if strings.Contains(filename, "..") || filepath.IsAbs(filename) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid filename"})
+	}
+
+	// Find the full file path
+	var path string
+
+	row := db.DB.QueryRow(`SELECT path FROM metadata WHERE filename = ? LIMIT 1`, filename)
+	if err := row.Scan(&path); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "File not found or access denied"})
+	}
 
 	// Check if file exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
