@@ -32,7 +32,7 @@ func UploadFile(c *fiber.Ctx) error {
 	filename, err := resolveFileNameConflict(userID, file.Filename)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not resolve filename"})
-}
+	}
 
 	// Save file to user-specific directory
 	savePath := filepath.Join(userDir, filename)
@@ -120,7 +120,7 @@ func DeleteFile(c *fiber.Ctx) error {
 	filename := c.Params("filename")
 	filename, err := internal.CleanParam(filename)
 	if err != nil {
-				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"Invalid filename"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"Invalid filename"})
 	}
 
 	// Find the full file path

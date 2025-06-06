@@ -2,8 +2,8 @@ package db
 
 import (
 	"database/sql"
-	"log"
 
+	"github.com/AumSahayata/cloudboxio/internal"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -14,7 +14,7 @@ func InitDB() {
 	var err error
 	DB, err = sql.Open("sqlite3", "data.db")
 	if err != nil {
-		log.Fatal("Failed to open database:", DB)
+		internal.Error.Println("Failed to open database:", DB)
 	}
 
 	createTable := `CREATE TABLE IF NOT EXISTS metadata (
@@ -28,6 +28,17 @@ func InitDB() {
 
 	_, err = DB.Exec(createTable)
 	if err != nil {
-		log.Fatal("Failed to create files table:", err)
+		internal.Error.Println("Failed to create files table:", err)
+	}
+}
+
+func CloseDB() {
+	if DB != nil {
+		err := DB.Close()
+		if err != nil {
+			internal.Error.Println("Error closing DB:", err)
+		} else {
+			internal.Info.Println("SQLite DB closed.")
+		}
 	}
 }

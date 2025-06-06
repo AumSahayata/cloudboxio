@@ -8,8 +8,10 @@
 *.so
 *.dylib
 
+# Project files and folders
 uploads
 data.db
+logs
 
 # Test binary, built with `go test -c`
 *.test
