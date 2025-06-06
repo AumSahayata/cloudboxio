@@ -8,6 +8,8 @@
 *.so
 *.dylib
 
+uploads
+
 # Test binary, built with `go test -c`
 *.test
 
