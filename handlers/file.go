@@ -3,8 +3,10 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/AumSahayata/cloudboxio/db"
 	"github.com/AumSahayata/cloudboxio/internal"
@@ -27,22 +29,27 @@ func UploadFile(c *fiber.Ctx) error {
 		return err
 	}
 
+	filename, err := resolveFileNameConflict(userID, file.Filename)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not resolve filename"})
+}
+
 	// Save file to user-specific directory
-	savePath := filepath.Join(userDir, file.Filename)
+	savePath := filepath.Join(userDir, filename)
 	if err := c.SaveFile(file, savePath); err != nil {
 		return err
 	}
 
 	// Insert metadata into SQLite DB
 	stmt := `INSERT INTO metadata (user_id, filename, size, path) VALUES (?, ?, ?, ?);`
-	_, err = db.DB.Exec(stmt, userID, file.Filename, file.Size, savePath)
+	_, err = db.DB.Exec(stmt, userID, filename, file.Size, savePath)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to save metadata"})
 	}
 
 	return c.JSON(fiber.Map{
 		"message":"File uploaded successfully",
-		"name":file.Filename,
+		"name":filename,
 		"size":file.Size,
 	})
 }
@@ -80,7 +87,7 @@ func ListFiles(c *fiber.Ctx) error {
 }
 
 func DownloadFile(c *fiber.Ctx) error {
-	// Get file name from the endpoint parameters
+	// Get file name from the endpoint parameters using request context
 	filename := c.Params("filename")
 
 	// Get sanitized filename
@@ -139,4 +146,32 @@ func DeleteFile(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "File deleted successfully"})
+}
+
+func resolveFileNameConflict(userID, originalName string) (string, error) {
+	// Split name and extension
+	ext := filepath.Ext(originalName)
+	base := strings.TrimSuffix(originalName, ext)
+
+	finalname := originalName
+	counter := 1
+
+	for {
+		var exists bool
+		stmt := `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ?)`
+
+		err := db.DB.QueryRow(stmt, finalname, userID).Scan(&exists)
+		if err != nil {
+			return "", err
+		}
+
+		if !exists {
+			break
+		}
+
+		finalname = fmt.Sprintf("%s(%d)%s", base, counter, ext)
+		counter++
+	}
+
+	return finalname, nil
 }
