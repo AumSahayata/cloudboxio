@@ -14,6 +14,7 @@ var users = map[string]models.User{}
 func SignUp(c *fiber.Ctx) error {
 	var req models.User
 	
+	// Put the data from the request body into req
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"Invalid Input"})
 	}
@@ -22,6 +23,7 @@ func SignUp(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"Email already registered"})
 	}
 
+	// Generate the hash for the password
 	hashedpwd, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 14)
 
 	newUser := models.User {
@@ -37,7 +39,8 @@ func SignUp(c *fiber.Ctx) error {
 
 func Login(c *fiber.Ctx) error {
 	var req models.User
-
+	
+	// Put the data from the request body into req
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
@@ -51,6 +54,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Invalid credentials"})
 	}
 
+	// Generate JWT
 	token, _ := internal.GenerateToken(user.ID)
 
 	return c.JSON(fiber.Map{"token":token})
