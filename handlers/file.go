@@ -74,3 +74,20 @@ func ListFiles(c *fiber.Ctx) error {
 
 	return c.JSON(fileList)
 }
+
+func DownloadFile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+	// Get file name from the endpoint parameters
+	filename := c.Params("filename")
+
+	// Construct the full file path
+	path := filepath.Join("uploads", userID, filename)
+
+	// Check if file exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error":"File not found"})
+	}
+
+	// Send the file as a response
+	return c.Download(path)
+}

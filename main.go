@@ -25,6 +25,7 @@ func main() {
 
 	app.Post("/upload", handlers.UploadFile)
 	app.Get("/files", handlers.ListFiles)
+	app.Get("/file/:filename", handlers.DownloadFile)
 
 	app.Listen(":3000")
 }
