@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"net/url"
+	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/AumSahayata/cloudboxio/db"
+	"github.com/AumSahayata/cloudboxio/internal"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -81,14 +83,9 @@ func DownloadFile(c *fiber.Ctx) error {
 	// Get file name from the endpoint parameters
 	filename := c.Params("filename")
 
-	// Decode %20, %3F etc. to proper characters
-	filename, err := url.QueryUnescape(filename)
+	// Get sanitized filename
+	filename, err := internal.CleanParam(filename)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid filename"})
-	}
-
-	// Prevent path traversal (e.g., filename = "../../passwd")
-	if strings.Contains(filename, "..") || filepath.IsAbs(filename) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid filename"})
 	}
 
@@ -107,4 +104,39 @@ func DownloadFile(c *fiber.Ctx) error {
 
 	// Send the file as a response
 	return c.Download(path)
+}
+
+func DeleteFile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	// Get and sanitize filename
+	filename := c.Params("filename")
+	filename, err := internal.CleanParam(filename)
+	if err != nil {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"Invalid filename"})
+	}
+
+	// Find the full file path
+	var path string
+
+	row := db.DB.QueryRow(`SELECT path FROM metadata WHERE filename = ? AND user_id = ? LIMIT 1`, filename, userID)
+	if err := row.Scan(&path); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "File not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not fetch file metadata"})
+	}
+
+	// Deletes the file from the disk
+	if err := os.Remove(path); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete file"})
+	}
+
+	// Deletes the metadata of the file
+	_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ? AND user_id = ?`, filename, userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete metadata"})
+	}
+
+	return c.JSON(fiber.Map{"message": "File deleted successfully"})
 }

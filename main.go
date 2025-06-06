@@ -26,6 +26,7 @@ func main() {
 	app.Post("/upload", handlers.UploadFile)
 	app.Get("/files", handlers.ListFiles)
 	app.Get("/file/:filename", handlers.DownloadFile)
+	app.Delete("/file/:filename", handlers.DeleteFile)
 
 	app.Listen(":3000")
 }
