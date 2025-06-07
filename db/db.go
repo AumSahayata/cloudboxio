@@ -28,7 +28,20 @@ func InitDB() {
 
 	_, err = DB.Exec(createTable)
 	if err != nil {
-		internal.Error.Println("Failed to create files table:", err)
+		internal.Error.Println("Failed to create metadata table:", err)
+	}
+
+	createTable = `CREATE TABLE IF NOT EXISTS users (
+		id TEXT PRIMARY KEY,
+		username TEXT UNIQUE NOT NULL,
+		email TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	_, err = DB.Exec(createTable)
+	if err != nil {
+		internal.Error.Println("Failed to create users table:", err)
 	}
 }
 

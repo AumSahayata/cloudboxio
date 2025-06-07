@@ -10,6 +10,7 @@ import (
 
 	"github.com/AumSahayata/cloudboxio/db"
 	"github.com/AumSahayata/cloudboxio/internal"
+	"github.com/AumSahayata/cloudboxio/models"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -64,7 +65,7 @@ func ListFiles(c *fiber.Ctx) error {
 	}
 	defer rows.Close()
 
-	var fileList []fiber.Map
+	fileList := make([]models.File, 0)
 
 	// Use rows to iterate over the metadata 
 	for rows.Next() {
@@ -76,10 +77,10 @@ func ListFiles(c *fiber.Ctx) error {
 			continue
 		}
 
-		fileList = append(fileList, fiber.Map{
-			"filename": filename,
-			"size": size,
-			"uploaded_at": uploadedAt,
+		fileList = append(fileList, models.File{
+			Filename: filename,
+			Size: size,
+			UploadedAt: uploadedAt,
 		})
 	}
 
