@@ -37,8 +37,9 @@ func main() {
 	//Protected routes
 	app.Use(internal.JWTProtected())
 
-	app.Post("/upload", handlers.UploadFile)
-	app.Get("/files", handlers.ListFiles)
+	app.Post("/upload/:shared?", handlers.UploadFile)
+	app.Get("/my-files", handlers.ListMyFiles)
+	app.Get("/shared-files", handlers.ListSharedFiles)
 	app.Get("/file/:filename", handlers.DownloadFile)
 	app.Delete("/file/:filename", handlers.DeleteFile)
 

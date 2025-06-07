@@ -17,6 +17,8 @@ import (
 
 func UploadFile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
+	share := c.Query("shared", "false")
+	isShare := share == "true"
 
 	//Get file from form
 	file, err := c.FormFile("file")
@@ -42,8 +44,8 @@ func UploadFile(c *fiber.Ctx) error {
 	}
 
 	// Insert metadata into SQLite DB
-	stmt := `INSERT INTO metadata (user_id, filename, size, path) VALUES (?, ?, ?, ?);`
-	_, err = db.DB.Exec(stmt, userID, filename, file.Size, savePath)
+	stmt := `INSERT INTO metadata (user_id, filename, size, path, is_shared) VALUES (?, ?, ?, ?, ?);`
+	_, err = db.DB.Exec(stmt, userID, filename, file.Size, savePath, isShare)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to save metadata"})
 	}
@@ -55,11 +57,41 @@ func UploadFile(c *fiber.Ctx) error {
 	})
 }
 
-func ListFiles(c *fiber.Ctx) error {
+func ListMyFiles(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
 	// Query the database for the metadata
-	rows, err := db.DB.Query(`SELECT filename, size, uploaded_at FROM metadata WHERE user_id = ?`, userID)
+	rows, err := db.DB.Query(`SELECT filename, size, uploaded_at FROM metadata WHERE user_id = ? AND is_shared = FALSE`, userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to query files"})
+	}
+	defer rows.Close()
+
+	fileList := make([]models.File, 0)
+
+	// Use rows to iterate over the metadata 
+	for rows.Next() {
+		var filename string
+		var size int64
+		var uploadedAt string
+
+		if err := rows.Scan(&filename, &size, &uploadedAt); err != nil {
+			continue
+		}
+
+		fileList = append(fileList, models.File{
+			Filename: filename,
+			Size: size,
+			UploadedAt: uploadedAt,
+		})
+	}
+
+	return c.JSON(fileList)
+}
+
+func ListSharedFiles(c *fiber.Ctx) error {
+	// Query the database for the metadata
+	rows, err := db.DB.Query(`SELECT filename, size, uploaded_at FROM metadata WHERE is_shared = TRUE`)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to query files"})
 	}

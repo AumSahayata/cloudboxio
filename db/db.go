@@ -23,6 +23,7 @@ func InitDB() {
 		filename TEXT,
 		size INTEGER,
 		path TEXT,
+		is_shared BOOLEAN DEFAULT FALSE,
 		uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
 

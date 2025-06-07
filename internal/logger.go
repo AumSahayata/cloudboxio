@@ -18,9 +18,7 @@ func InitLogger() {
 	if err != nil {
 		log.Fatalf("error opening log file: %v", err)
 	}
-
-	log.SetOutput(logfile)
-
+	
 	multi := io.MultiWriter(os.Stdout, logfile)
 
 	Info = log.New(multi, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
