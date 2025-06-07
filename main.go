@@ -17,6 +17,9 @@ import (
 const Version = "1.0.0"
 
 func main() {
+	// Ensure .env exists and is loaded
+	internal.CheckOrInitEnv()
+
 	// Initiate logger
 	internal.InitLogger()
 	internal.Info.Println("Starting server...")

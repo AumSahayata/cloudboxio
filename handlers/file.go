@@ -17,8 +17,8 @@ import (
 
 func UploadFile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
-	share := c.Query("shared", "false")
-	isShare := share == "true"
+	shared := c.Query("shared", "false")
+	isShared := shared == "true"
 
 	//Get file from form
 	file, err := c.FormFile("file")
@@ -45,10 +45,15 @@ func UploadFile(c *fiber.Ctx) error {
 
 	// Insert metadata into SQLite DB
 	stmt := `INSERT INTO metadata (user_id, filename, size, path, is_shared) VALUES (?, ?, ?, ?, ?);`
-	_, err = db.DB.Exec(stmt, userID, filename, file.Size, savePath, isShare)
+	_, err = db.DB.Exec(stmt, userID, filename, file.Size, savePath, isShared)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to save metadata"})
 	}
+
+	internal.FileOps.Printf("User [%s] uploaded %s file: %s",
+	userID,
+	func() string {if isShared { return "shared" } else { return "personal" } }(),
+	filename)
 
 	return c.JSON(fiber.Map{
 		"message":"File uploaded successfully",
@@ -156,11 +161,12 @@ func DeleteFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"Invalid filename"})
 	}
 
-	// Find the full file path
+	// Find the full file path and share status
+	var shared bool
 	var path string
 
-	row := db.DB.QueryRow(`SELECT path FROM metadata WHERE filename = ? AND user_id = ? LIMIT 1`, filename, userID)
-	if err := row.Scan(&path); err != nil {
+	row := db.DB.QueryRow(`SELECT is_shared, path FROM metadata WHERE filename = ? AND user_id = ? LIMIT 1`, filename, userID)
+	if err := row.Scan(&shared, &path); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "File not found"})
 		}
@@ -177,6 +183,11 @@ func DeleteFile(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete metadata"})
 	}
+
+	internal.FileOps.Printf("User [%s] deleted %s file: %s",
+	userID,
+	func() string {if shared { return "shared" } else { return "personal"} }(),
+	filename)
 
 	return c.JSON(fiber.Map{"message": "File deleted successfully"})
 }
