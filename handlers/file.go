@@ -20,25 +20,36 @@ func UploadFile(c *fiber.Ctx) error {
 	shared := c.Query("shared", "false")
 	isShared := shared == "true"
 
+	fileDir := os.Getenv("FILES_DIR")
+	sharedDir := os.Getenv("SHARED_DIR")
+
 	//Get file from form
 	file, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "File is required"})
 	}
 
-	// Create user's folder if not exists
-	userDir := filepath.Join("uploads", userID)
-	if err := os.MkdirAll(userDir, os.ModePerm); err != nil {
+	// Create shared folder if not exists
+	dirPath := filepath.Join(fileDir, sharedDir)
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
 		return err
 	}
 
-	filename, err := resolveFileNameConflict(userID, file.Filename)
+	if !isShared {
+		// Create user's folder if not exists
+		dirPath = filepath.Join(fileDir, userID)
+		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	filename, err := resolveFileNameConflict(userID, file.Filename, isShared)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not resolve filename"})
 	}
 
 	// Save file to user-specific directory
-	savePath := filepath.Join(userDir, filename)
+	savePath := filepath.Join(dirPath, filename)
 	if err := c.SaveFile(file, savePath); err != nil {
 		return err
 	}
@@ -165,7 +176,7 @@ func DeleteFile(c *fiber.Ctx) error {
 	var shared bool
 	var path string
 
-	row := db.DB.QueryRow(`SELECT is_shared, path FROM metadata WHERE filename = ? AND user_id = ? LIMIT 1`, filename, userID)
+	row := db.DB.QueryRow(`SELECT is_shared, path FROM metadata WHERE filename = ? LIMIT 1`, filename, userID)
 	if err := row.Scan(&shared, &path); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "File not found"})
@@ -180,9 +191,9 @@ func DeleteFile(c *fiber.Ctx) error {
 
 	// Deletes the metadata of the file
 	if shared {
-		_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ?`, filename)
+		_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ? AND is_shared = ?`, filename, true)
 	} else {
-		_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ? AND user_id = ?`, filename, userID)
+		_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = ?`, filename, userID, false)
 	}
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete metadata"})
@@ -193,10 +204,10 @@ func DeleteFile(c *fiber.Ctx) error {
 	func() string {if shared { return "shared" } else { return "personal"} }(),
 	filename)
 
-	return c.JSON(fiber.Map{"message": "File deleted successfully"})
+	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{"message": "File deleted successfully"})
 }
 
-func resolveFileNameConflict(userID, originalName string) (string, error) {
+func resolveFileNameConflict(userID, originalName string, isShared bool) (string, error) {
 	// Split name and extension
 	ext := filepath.Ext(originalName)
 	base := strings.TrimSuffix(originalName, ext)
@@ -206,9 +217,9 @@ func resolveFileNameConflict(userID, originalName string) (string, error) {
 
 	for {
 		var exists bool
-		stmt := `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ?)`
+		stmt := `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = ?)`
 
-		err := db.DB.QueryRow(stmt, finalname, userID).Scan(&exists)
+		err := db.DB.QueryRow(stmt, finalname, userID, isShared).Scan(&exists)
 		if err != nil {
 			return "", err
 		}
