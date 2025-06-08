@@ -33,6 +33,9 @@ func main() {
 	// Initiate database
 	db.InitDB()
 
+	// Apply CORS globally
+	app.Use(internal.CORSMiddleware())
+
 	//Public routes
 	app.Post("/signup", handlers.SignUp)
 	app.Post("/login", handlers.Login)

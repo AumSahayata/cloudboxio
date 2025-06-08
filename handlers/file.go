@@ -179,7 +179,11 @@ func DeleteFile(c *fiber.Ctx) error {
 	}
 
 	// Deletes the metadata of the file
-	_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ? AND user_id = ?`, filename, userID)
+	if shared {
+		_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ?`, filename)
+	} else {
+		_, err = db.DB.Exec(`DELETE FROM metadata WHERE filename = ? AND user_id = ?`, filename, userID)
+	}
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete metadata"})
 	}
