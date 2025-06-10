@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"strings"
 
 	"github.com/AumSahayata/cloudboxio/db"
@@ -80,5 +82,27 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to generate token"})
 	}
 
-	return c.JSON(fiber.Map{"token":token})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"token":token})
+}
+
+func GetUserInfo(c *fiber.Ctx) error {
+	var userID = c.Locals("user_id")
+
+	row := db.DB.QueryRow(`SELECT id, username, email FROM users WHERE id = ?`, userID)
+
+	var id, username, email string
+	if err := row.Scan(&id, &username, &email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not fetch user data"})
+	}
+
+	userData := models.User{
+		ID: id,
+		Username: username,	
+		Email: email,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(userData)
 }

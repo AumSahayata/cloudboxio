@@ -66,7 +66,7 @@ func UploadFile(c *fiber.Ctx) error {
 	func() string {if isShared { return "shared" } else { return "personal" } }(),
 	filename)
 
-	return c.JSON(fiber.Map{
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message":"File uploaded successfully",
 		"name":filename,
 		"size":file.Size,
@@ -104,7 +104,7 @@ func ListMyFiles(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fileList)
+	return c.Status(fiber.StatusOK).JSON(fileList)
 }
 
 func ListSharedFiles(c *fiber.Ctx) error {
@@ -136,7 +136,7 @@ func ListSharedFiles(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fileList)
+	return c.Status(fiber.StatusOK).JSON(fileList)
 }
 
 func DownloadFile(c *fiber.Ctx) error {
@@ -157,7 +157,7 @@ func DownloadFile(c *fiber.Ctx) error {
 	}
 
 	// Send the file as a response
-	return c.Download(path)
+	return c.Status(fiber.StatusOK).Download(path)
 }
 
 func DeleteFile(c *fiber.Ctx) error {

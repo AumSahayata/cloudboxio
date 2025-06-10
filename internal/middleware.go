@@ -44,7 +44,7 @@ func JWTProtected() fiber.Handler {
 
 func CORSMiddleware() fiber.Handler {
 	return cors.New(cors.Config{
-		AllowOrigins: "http://127.0.0.1:5500",
+		AllowOrigins: "http://127.0.0.1:3000",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, DELETE, OPTIONS, PUT",
 	})

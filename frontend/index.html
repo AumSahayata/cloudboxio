@@ -22,10 +22,21 @@
                 <i class="bi bi-cloud-arrow-up-fill me-2"></i>CloudBoxIO
             </a>
             <div class="navbar-nav ms-auto">
-                <div class="nav-item d-none" id="logoutNav">
-                    <button class="btn btn-danger" onclick="logout()">
-                        <i class="bi bi-box-arrow-right me-1"></i>Logout
-                    </button>
+                <!-- User Profile Dropdown (shown when logged in) -->
+                <div class="nav-item d-none" id="userProfileNav">
+                    <div class="dropdown">
+                        <button class="btn btn-link nav-link dropdown-toggle text-light" type="button" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span id="navUsername">User</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userProfileDropdown">
+                            <li><span class="dropdown-item-text text-muted" id="navEmail"></span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item text-danger" onclick="logout()">
+                                <i class="bi bi-box-arrow-right me-1"></i>Logout
+                            </button></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -33,61 +44,67 @@
 
     <!-- Main Content -->
     <div class="container mt-4">
-        <!-- Welcome Section (shown when not logged in) -->
-        <div id="welcomeSection" class="welcome-section">
-            <div class="welcome-content">
-                <h1>Welcome to CloudBoxIO</h1>
-                <p>Your secure and easy-to-use cloud storage solution</p>
-                <div class="welcome-buttons">
-                    <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#loginModal">
-                        <i class="bi bi-box-arrow-in-right me-1"></i>Login
-                    </button>
-                    <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#signupModal">
-                        <i class="bi bi-person-plus me-1"></i>Sign Up
-                    </button>
+        <!-- Authentication Section (shown when not logged in) -->
+        <div id="authSection">
+            <!-- Welcome Section -->
+            <div id="welcomeSection" class="welcome-section">
+                <div class="welcome-content">
+                    <h1>Welcome to CloudBoxIO</h1>
+                    <p>Your secure and easy-to-use cloud storage solution</p>
+                    <div class="welcome-buttons">
+                        <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                        </button>
+                        <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#signupModal">
+                            <i class="bi bi-person-plus me-1"></i>Sign Up
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- File Upload Section -->
-        <div class="card mb-4 d-none" id="uploadSection">
-            <div class="card-body">
-                <h5 class="card-title">Upload Files</h5>
-                <form id="uploadForm">
-                    <div class="mb-3">
-                        <input type="file" class="form-control" id="fileInput" multiple>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="sharedCheckbox">
-                        <label class="form-check-label" for="sharedCheckbox">Make this file public</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 w-md-auto">Upload</button>
-                </form>
+        <!-- Main Section (shown when logged in) -->
+        <div id="mainSection" style="display: none;">
+            <!-- File Upload Section -->
+            <div class="card mb-4" id="uploadSection">
+                <div class="card-body">
+                    <h5 class="card-title">Upload Files</h5>
+                    <form id="uploadForm">
+                        <div class="mb-3">
+                            <input type="file" class="form-control" id="fileInput" multiple>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="sharedCheckbox">
+                            <label class="form-check-label" for="sharedCheckbox">Make this file public</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 w-md-auto">Upload</button>
+                    </form>
+                </div>
             </div>
-        </div>
 
-        <!-- Files List Section -->
-        <div class="card d-none" id="filesSection">
-            <div class="card-body">
-                <div class="row g-4">
-                    <!-- My Files Section -->
-                    <div class="col-12 col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">My Files</h5>
-                                <div id="myFilesList" class="list-group">
-                                    <!-- My files will be listed here -->
+            <!-- Files List Section -->
+            <div class="card" id="filesSection">
+                <div class="card-body">
+                    <div class="row g-4">
+                        <!-- My Files Section -->
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">My Files</h5>
+                                    <div id="myFilesList" class="list-group">
+                                        <!-- My files will be listed here -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <!-- Shared Files Section -->
-                    <div class="col-12 col-md-6">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">Public Files</h5>
-                                <div id="sharedFilesList" class="list-group">
-                                    <!-- Shared files will be listed here -->
+                        <!-- Shared Files Section -->
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">Public Files</h5>
+                                    <div id="sharedFilesList" class="list-group">
+                                        <!-- Shared files will be listed here -->
+                                    </div>
                                 </div>
                             </div>
                         </div>

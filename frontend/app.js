@@ -260,20 +260,8 @@ function logout() {
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => alert.remove());
     
-    // Update UI
-    const loginNav = document.getElementById('loginNav');
-    const signupNav = document.getElementById('signupNav');
-    const logoutNav = document.getElementById('logoutNav');
-    const uploadSection = document.getElementById('uploadSection');
-    const filesSection = document.getElementById('filesSection');
-    const welcomeSection = document.getElementById('welcomeSection');
-
-    if (loginNav) loginNav.classList.remove('d-none');
-    if (signupNav) signupNav.classList.remove('d-none');
-    if (logoutNav) logoutNav.classList.add('d-none');
-    if (uploadSection) uploadSection.classList.add('d-none');
-    if (filesSection) filesSection.classList.add('d-none');
-    if (welcomeSection) welcomeSection.classList.remove('d-none');
+    // Update UI using the new function
+    showUnauthenticatedUI();
 }
 
 // Delete file
@@ -370,40 +358,64 @@ function checkAuth() {
     }
 }
 
+// Fetch and display user details
+async function fetchUserDetails() {
+    try {
+        const response = await fetch(`${API_URL}/user-info`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch user details');
+        }
+        
+        const userData = await response.json();
+        displayUserDetails(userData);
+    } catch (error) {
+        console.error('Error fetching user details:', error);
+        alert('Failed to load user details');
+    }
+}
+
+// Display user details in the UI
+function displayUserDetails(userData) {
+    if (!userData) return;
+    
+    // Update navigation username and email
+    const navUsername = document.getElementById('navUsername');
+    const navEmail = document.getElementById('navEmail');
+    if (navUsername) navUsername.textContent = userData.username;
+    if (navEmail) navEmail.textContent = userData.email;
+}
+
 // Show authenticated UI
 function showAuthenticatedUI() {
-    const loginNav = document.getElementById('loginNav');
-    const signupNav = document.getElementById('signupNav');
-    const logoutNav = document.getElementById('logoutNav');
-    const uploadSection = document.getElementById('uploadSection');
-    const filesSection = document.getElementById('filesSection');
-    const welcomeSection = document.getElementById('welcomeSection');
+    // Show user profile
+    const userProfileNav = document.getElementById('userProfileNav');
+    if (userProfileNav) userProfileNav.classList.remove('d-none');
 
-    if (loginNav) loginNav.classList.add('d-none');
-    if (signupNav) signupNav.classList.add('d-none');
-    if (logoutNav) logoutNav.classList.remove('d-none');
-    if (uploadSection) uploadSection.classList.remove('d-none');
-    if (filesSection) filesSection.classList.remove('d-none');
-    if (welcomeSection) welcomeSection.classList.add('d-none');
-
+    // Show main content
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('mainSection').style.display = 'block';
+    
+    // Fetch and display user details
+    fetchUserDetails();
+    
+    // Load files
     loadFiles();
 }
 
 // Show unauthenticated UI
 function showUnauthenticatedUI() {
-    const loginNav = document.getElementById('loginNav');
-    const signupNav = document.getElementById('signupNav');
-    const logoutNav = document.getElementById('logoutNav');
-    const uploadSection = document.getElementById('uploadSection');
-    const filesSection = document.getElementById('filesSection');
-    const welcomeSection = document.getElementById('welcomeSection');
+    // Hide user profile
+    const userProfileNav = document.getElementById('userProfileNav');
+    if (userProfileNav) userProfileNav.classList.add('d-none');
 
-    if (loginNav) loginNav.classList.remove('d-none');
-    if (signupNav) signupNav.classList.remove('d-none');
-    if (logoutNav) logoutNav.classList.add('d-none');
-    if (uploadSection) uploadSection.classList.add('d-none');
-    if (filesSection) filesSection.classList.add('d-none');
-    if (welcomeSection) welcomeSection.classList.remove('d-none');
+    // Show auth content
+    document.getElementById('authSection').style.display = 'block';
+    document.getElementById('mainSection').style.display = 'none';
 }
 
 // Initialize the application
@@ -439,22 +451,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (modal) modal.hide();
                     loginForm.reset();
                     
-                    // Update UI
-                    const loginNav = document.getElementById('loginNav');
-                    const signupNav = document.getElementById('signupNav');
-                    const logoutNav = document.getElementById('logoutNav');
-                    const uploadSection = document.getElementById('uploadSection');
-                    const filesSection = document.getElementById('filesSection');
-                    const welcomeSection = document.getElementById('welcomeSection');
-
-                    if (loginNav) loginNav.classList.add('d-none');
-                    if (signupNav) signupNav.classList.add('d-none');
-                    if (logoutNav) logoutNav.classList.remove('d-none');
-                    if (uploadSection) uploadSection.classList.remove('d-none');
-                    if (filesSection) filesSection.classList.remove('d-none');
-                    if (welcomeSection) welcomeSection.classList.add('d-none');
-
-                    await loadFiles();
+                    // Update UI using the new function
+                    showAuthenticatedUI();
                     hideLoading();
                 } else {
                     throw new Error(data.error || 'Login failed');

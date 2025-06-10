@@ -1,6 +1,10 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,9 +15,13 @@ import (
 	"github.com/AumSahayata/cloudboxio/internal"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
 const Version = "1.0.0"
+
+//go:embed frontend/*
+var embeddedFiles embed.FS
 
 func main() {
 	// Ensure .env exists and is loaded
@@ -29,6 +37,7 @@ func main() {
 	// Initiate server
 	app := fiber.New(fiber.Config{
 		AppName: "CloudBoxIO",
+		DisableKeepalive: true,
 	})
 
 	// Initiate database
@@ -38,8 +47,19 @@ func main() {
 	app.Use(internal.CORSMiddleware())
 
 	// Use default UI for the app
-	if os.Getenv("USE_DEFAULT_UI") == "true"{
-		app.Static("/", "./frontend")
+	if os.Getenv("USE_DEFAULT_UI") == "true" {
+		subFS, err := fs.Sub(embeddedFiles, "frontend")
+		if err != nil {
+			internal.Error.Fatalln("Error creating file system for frontend:", err)
+		}
+		app.Use("/", filesystem.New(filesystem.Config{
+			Root: http.FS(subFS),
+			Index: "index.html",
+			Browse: false,
+		}))
+		internal.Info.Println("Serving embedded UI at /")
+	} else {
+		internal.Info.Printf("USE_DEFAULT_UI=false — UI not served")
 	}
 
 	//Public routes
@@ -49,14 +69,26 @@ func main() {
 	//Protected routes
 	app.Use(internal.JWTProtected())
 
+	// Files endpoint
 	app.Post("/upload/:shared?", handlers.UploadFile)
 	app.Get("/my-files", handlers.ListMyFiles)
 	app.Get("/shared-files", handlers.ListSharedFiles)
 	app.Get("/file/:fileid", handlers.DownloadFile)
 	app.Delete("/file/:fileid", handlers.DeleteFile)
+	
+	// User endpoints
+	app.Get("/user-info", handlers.GetUserInfo)
+
+	// Create and hold your own TCP listener
+    addr := ":3000"
+    ln, err := net.Listen("tcp", addr)
+    if err != nil {
+        internal.Error.Fatalf("Failed to listen on %s: %v", addr, err)
+    }
+    internal.Info.Printf("Listening on %s", addr)
 
 	go func() {
-		if err := app.Listen(":3000"); err != nil {
+		if err := app.Listener(ln); err != nil {
 			internal.Error.Fatalf("Server failed to start: %v", err)
 		}
 	}()

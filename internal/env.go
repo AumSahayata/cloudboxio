@@ -29,7 +29,7 @@ func GenerateENV() bool {
 	// Writing to .env file
 	file.WriteString("LOG_TO_CONSOLE=true\n")
 	file.WriteString("LOG_FILE_OPS=true\n")
-	file.WriteString("USE_DEFAULT_UI=true/\n")
+	file.WriteString("USE_DEFAULT_UI=true\n")
 	file.WriteString("FILES_DIR=uploads/\n")
 	file.WriteString("SHARED_DIR=shared/\n")
 
