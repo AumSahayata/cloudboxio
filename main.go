@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,13 +27,20 @@ func main() {
 	internal.InitJWT()
 
 	// Initiate server
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		AppName: "CloudBoxIO",
+	})
 
 	// Initiate database
 	db.InitDB()
-
+	
 	// Apply CORS globally
 	app.Use(internal.CORSMiddleware())
+
+	// Use default UI for the app
+	if os.Getenv("USE_DEFAULT_UI") == "true"{
+		app.Static("/", "./frontend")
+	}
 
 	//Public routes
 	app.Post("/signup", handlers.SignUp)
@@ -46,8 +52,8 @@ func main() {
 	app.Post("/upload/:shared?", handlers.UploadFile)
 	app.Get("/my-files", handlers.ListMyFiles)
 	app.Get("/shared-files", handlers.ListSharedFiles)
-	app.Get("/file/:filename", handlers.DownloadFile)
-	app.Delete("/file/:filename", handlers.DeleteFile)
+	app.Get("/file/:fileid", handlers.DownloadFile)
+	app.Delete("/file/:fileid", handlers.DeleteFile)
 
 	go func() {
 		if err := app.Listen(":3000"); err != nil {
@@ -59,19 +65,16 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c // Block until signal received
-
+	
 	internal.Info.Println("Shutting down server...")
-
-	// Close DB
-	db.CloseDB()
-
+	
 	// Gracefully shutdown the server
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
-	defer cancel()
-
-	if err := app.ShutdownWithContext(ctx); err != nil {
+	if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
 		internal.Error.Printf("Shutdown error: %v", err)
 	} else {
 		internal.Info.Println("Server shut down gracefully")
 	}
+
+	// Close DB
+	db.CloseDB()
 }

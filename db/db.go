@@ -12,9 +12,16 @@ var DB *sql.DB
 // Initialize the database
 func InitDB() {
 	var err error
-	DB, err = sql.Open("sqlite3", "data.db")
+	DB, err = sql.Open("sqlite3", "file:data.db?_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL")
 	if err != nil {
-		internal.Error.Println("Failed to open database:", DB)
+		internal.Error.Fatalln("Failed to open database:", err)
+	}
+
+	DB.SetMaxOpenConns(1)
+	DB.SetMaxIdleConns(1)
+
+	if err = DB.Ping(); err != nil {
+		internal.Error.Fatalln("Database unreachable:", err)
 	}
 
 	createTable := `CREATE TABLE IF NOT EXISTS metadata (
@@ -27,9 +34,7 @@ func InitDB() {
 		uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		UNIQUE(user_id, filename, is_shared)
 	);`
-
-	_, err = DB.Exec(createTable)
-	if err != nil {
+	if _, err = DB.Exec(createTable); err != nil {
 		internal.Error.Println("Failed to create metadata table:", err)
 	}
 
@@ -40,9 +45,7 @@ func InitDB() {
 		password TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
-
-	_, err = DB.Exec(createTable)
-	if err != nil {
+	if _, err = DB.Exec(createTable); err != nil {
 		internal.Error.Println("Failed to create users table:", err)
 	}
 }
