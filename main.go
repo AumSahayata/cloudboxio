@@ -80,7 +80,7 @@ func main() {
 	app.Get("/user-info", handlers.GetUserInfo)
 
 	// Create and hold your own TCP listener
-    addr := ":3000"
+    addr := ":" + os.Getenv("PORT")
     ln, err := net.Listen("tcp", addr)
     if err != nil {
         internal.Error.Fatalf("Failed to listen on %s: %v", addr, err)

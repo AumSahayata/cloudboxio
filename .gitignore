@@ -12,6 +12,7 @@
 uploads
 data.db
 logs
+build
 
 # Test binary, built with `go test -c`
 *.test

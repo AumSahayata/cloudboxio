@@ -27,6 +27,7 @@ func GenerateENV() bool {
 	defer file.Close()
 
 	// Writing to .env file
+	file.WriteString("PORT=3000\n")
 	file.WriteString("LOG_TO_CONSOLE=true\n")
 	file.WriteString("LOG_FILE_OPS=true\n")
 	file.WriteString("USE_DEFAULT_UI=true\n")

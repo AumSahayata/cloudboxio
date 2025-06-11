@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,9 +43,11 @@ func JWTProtected() fiber.Handler {
 	}
 }
 
+var allowedOrigins string = "http://127.0.0.1:" + os.Getenv("PORT")
+
 func CORSMiddleware() fiber.Handler {
 	return cors.New(cors.Config{
-		AllowOrigins: "http://127.0.0.1:3000",
+		AllowOrigins: allowedOrigins,
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, DELETE, OPTIONS, PUT",
 	})
