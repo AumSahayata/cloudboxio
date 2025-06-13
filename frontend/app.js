@@ -384,11 +384,22 @@ async function fetchUserDetails() {
 function displayUserDetails(userData) {
     if (!userData) return;
     
-    // Update navigation username and email
+    // Update navigation username
     const navUsername = document.getElementById('navUsername');
-    const navEmail = document.getElementById('navEmail');
-    if (navUsername) navUsername.textContent = userData.username;
-    if (navEmail) navEmail.textContent = userData.email;
+    if (navUsername) {
+        // Add admin badge if user is admin
+        navUsername.textContent = userData.username;
+        if (userData.is_admin) {
+            navUsername.innerHTML += ' <span class="badge bg-warning">Admin</span>';
+            // Show admin-only options
+            document.getElementById('createUserNavItem').style.display = 'block';
+            document.getElementById('createUserDivider').style.display = 'block';
+        } else {
+            // Hide admin-only options
+            document.getElementById('createUserNavItem').style.display = 'none';
+            document.getElementById('createUserDivider').style.display = 'none';
+        }
+    }
 }
 
 // Show authenticated UI
@@ -423,14 +434,16 @@ function showUnauthenticatedUI() {
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize password visibility toggles
     togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
-    togglePasswordVisibility('signupPassword', 'toggleSignupPassword');
+    togglePasswordVisibility('currentPassword', 'toggleCurrentPassword');
+    togglePasswordVisibility('newPassword', 'toggleNewPassword');
+    togglePasswordVisibility('newUserPassword', 'toggleNewUserPassword');
 
     // Handle login
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
+            const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
 
             showLoading('Logging in...');
@@ -440,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ username, password })
                 });
 
                 const data = await response.json();
@@ -461,46 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Login error:', error);
                 alert(error.message || 'Error during login');
-                hideLoading();
-            }
-        });
-    }
-
-    // Handle signup
-    const signupForm = document.getElementById('signupForm');
-    if (signupForm) {
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('signupUsername').value;
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-
-            showLoading('Creating account...');
-            try {
-                const response = await fetch(`${API_URL}/signup`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username, email, password }),
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('signupModal'));
-                    if (modal) modal.hide();
-                    showLoading('Signup complete! Please login.');
-                    signupForm.reset();
-                    // Wait for 2 seconds before hiding the loading message
-                    setTimeout(() => {
-                        hideLoading();
-                    }, 2000);
-                } else {
-                    throw new Error(data.error || 'Signup failed');
-                }
-            } catch (error) {
-                console.error('Signup error:', error);
-                alert(error.message || 'Error during signup');
                 hideLoading();
             }
         });
@@ -559,6 +532,97 @@ document.addEventListener('DOMContentLoaded', () => {
                     hideLoading();
                 }, 2000);
             } else {
+                hideLoading();
+            }
+        });
+    }
+
+    // Handle reset password
+    const resetPasswordForm = document.getElementById('resetPasswordForm');
+    if (resetPasswordForm) {
+        resetPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+
+            // Validate new password length
+            if (newPassword.length < 8) {
+                alert('New password must be at least 8 characters long');
+                return;
+            }
+
+            showLoading('Resetting password...');
+            try {
+                const response = await fetch(`${API_URL}/reset-password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+                    if (modal) modal.hide();
+                    resetPasswordForm.reset();
+                    showLoading('Password reset successful!');
+                    setTimeout(() => {
+                        hideLoading();
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Password reset failed');
+                }
+            } catch (error) {
+                console.error('Password reset error:', error);
+                alert(error.message || 'Error during password reset');
+                hideLoading();
+            }
+        });
+    }
+
+    // Handle create user
+    const createUserForm = document.getElementById('createUserForm');
+    if (createUserForm) {
+        createUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newUserPassword').value;
+            const isAdmin = document.getElementById('isAdminCheckbox').checked;
+
+            // Validate password length
+            if (password.length < 8) {
+                alert('Password must be at least 8 characters long');
+                return;
+            }
+
+            showLoading('Creating user...');
+            try {
+                const response = await fetch(`${API_URL}/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    },
+                    body: JSON.stringify({ username, password, is_admin: isAdmin })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
+                    if (modal) modal.hide();
+                    createUserForm.reset();
+                    showLoading('User created successfully!');
+                    setTimeout(() => {
+                        hideLoading();
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Failed to create user');
+                }
+            } catch (error) {
+                console.error('Create user error:', error);
+                alert(error.message || 'Error creating user');
                 hideLoading();
             }
         });

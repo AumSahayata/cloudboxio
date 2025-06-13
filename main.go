@@ -18,7 +18,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
-const Version = "1.0.0"
+const Version = "1.1.0"
 
 //go:embed frontend/*
 var embeddedFiles embed.FS
@@ -48,6 +48,7 @@ func main() {
 
 	// Use default UI for the app
 	if os.Getenv("USE_DEFAULT_UI") == "true" {
+		// Create a virtual filesystem to server frontend
 		subFS, err := fs.Sub(embeddedFiles, "frontend")
 		if err != nil {
 			internal.Error.Fatalln("Error creating file system for frontend:", err)
@@ -69,8 +70,6 @@ func main() {
 	app.Use(internal.JWTProtected())
 	
 	// Files endpoint
-	app.Put("/reset-password", handlers.ResetPassword)
-	app.Post("/signup", handlers.SignUp)
 	app.Post("/upload/:shared?", handlers.UploadFile)
 	app.Get("/my-files", handlers.ListMyFiles)
 	app.Get("/shared-files", handlers.ListSharedFiles)
@@ -78,9 +77,11 @@ func main() {
 	app.Delete("/file/:fileid", handlers.DeleteFile)
 	
 	// User endpoints
-	app.Get("/user-info", handlers.GetUsername)
+	app.Post("/signup", handlers.SignUp)
+	app.Put("/reset-password", handlers.ResetPassword)
+	app.Get("/user-info", handlers.GetUserInfo)
 
-	// Create and hold your own TCP listener
+	// Create and hold own TCP listener (not using fiber's listener)
     addr := ":" + os.Getenv("PORT")
     ln, err := net.Listen("tcp", addr)
     if err != nil {

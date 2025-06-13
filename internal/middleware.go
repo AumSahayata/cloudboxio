@@ -36,7 +36,7 @@ func JWTProtected() fiber.Handler {
 
 		// Extract payload from the token
 		claims := token.Claims.(jwt.MapClaims)
-		
+
 		// Storeing data in request context
 		c.Locals("user_id", claims["user_id"])
 		c.Locals("is_admin", claims["is_admin"])
@@ -45,6 +45,7 @@ func JWTProtected() fiber.Handler {
 	}
 }
 
+// Allowed address 
 var allowedOrigins string = "http://127.0.0.1:" + os.Getenv("PORT")
 
 func CORSMiddleware() fiber.Handler {

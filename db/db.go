@@ -28,7 +28,8 @@ func InitDB() {
 	if err = DB.Ping(); err != nil {
 		log.Fatalln("Database unreachable:", err)
 	}
-    // remember UNIQUE
+
+    // Create metadata table
 	createTable := `CREATE TABLE IF NOT EXISTS metadata (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id TEXT,
@@ -36,13 +37,13 @@ func InitDB() {
 		size INTEGER,
 		path TEXT,
 		is_shared BOOLEAN DEFAULT FALSE,
-		uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		UNIQUE(user_id, filename, is_shared)
+		uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
 	if _, err = DB.Exec(createTable); err != nil {
 		log.Println("Failed to create metadata table:", err)
 	}
 
+	// Create users table 
 	createTable = `CREATE TABLE IF NOT EXISTS users (
 		id TEXT PRIMARY KEY,
 		username TEXT UNIQUE NOT NULL,
@@ -54,6 +55,7 @@ func InitDB() {
 		log.Println("Failed to create users table:", err)
 	}
 	
+	// Create settings table
 	createTable = `CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -62,6 +64,7 @@ func InitDB() {
 		log.Println("Failed to create settings table:", err)
 	}
 
+	// Add initial settings in the settings table
 	stmt := `INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_setup_done', 'false')`
 	if _, err := DB.Exec(stmt); err != nil {
 		log.Println("Failed to setup initial settings:", err)
@@ -82,12 +85,16 @@ func CloseDB() {
 }
 
 func createAdmin() {
+	// Generate random password
 	randomPassword, err := generateRandomPassword(8)
 	if err != nil {
 		log.Fatalln("Failed to generate password:", err)
 	}
 	log.Println("Admin password (one-time):", randomPassword)
+
+	// Create temp_admin_credentials.txt file 
 	os.WriteFile("temp_admin_credentials.txt", []byte("CloudBoxIO Temporary Admin Credentials (One-Time Use Only)\n\nUsername: admin\nPassword: "+randomPassword+"\n\nThese credentials are for first-time access only.\nOnce the admin password is reset, this file is deleted automatically."), 0600)
+
 	log.Println("Admin credentials saved to temp_admin_credentials.txt")
 
 	hashedpwd, err := bcrypt.GenerateFromPassword([]byte(randomPassword), 14)
@@ -95,6 +102,7 @@ func createAdmin() {
 		log.Fatalln("Failed to hash password:", err)
 	}
 
+	// Create admin user
 	stmt := `INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`
 	if _, err := DB.Exec(stmt, uuid.NewString(), "admin", hashedpwd, true); err != nil {
 		log.Fatalln("Failed to create admin user:", err)
@@ -103,6 +111,7 @@ func createAdmin() {
 
 func checkAndCreateAdmin() {
     var count int
+	// Gets the count of admin users
     err := DB.QueryRow(`SELECT COUNT(*) FROM users WHERE is_admin = 1`).Scan(&count)
     if err != nil {
         log.Println("Failed to check admin user:", err)
@@ -113,11 +122,13 @@ func checkAndCreateAdmin() {
     }
 }
 
+// Characters to create password from
 const passwordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$"
 
 func generateRandomPassword(length int) (string, error) {
     password := make([]byte, length)
     for i := range password {
+		// Randomly select characters for password 
         index, err := rand.Int(rand.Reader, big.NewInt(int64(len(passwordChars))))
         if err != nil {
             return "", err

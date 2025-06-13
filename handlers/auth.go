@@ -137,11 +137,12 @@ func ResetPassword(c *fiber.Ctx) error {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to update password"})
     }
 
-	// Completes the admin setup
+	// Complete admin setup
 	if isAdmin && !internal.IsAdminSetup() {
 		if err := internal.ChangeSetting("admin_setup_done", "true"); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Password changed, but failed to update system state"})
 		}
+		// Delete temp_admin_credentials.txt file
 		if err := os.Remove("temp_admin_credentials.txt"); err != nil {
 			internal.Error.Println("Warning: Failed to delete temp admin credentials:", err)
 		}
@@ -150,22 +151,23 @@ func ResetPassword(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Password reset successful"})
 }
 
-func GetUsername(c *fiber.Ctx) error {
+func GetUserInfo(c *fiber.Ctx) error {
 	var userID = c.Locals("user_id")
 
-	row := db.DB.QueryRow(`SELECT id, username FROM users WHERE id = ?`, userID)
+	row := db.DB.QueryRow(`SELECT username, is_admin FROM users WHERE id = ?`, userID)
 
-	var id, username string
-	if err := row.Scan(&id, &username); err != nil {
+	var username string
+	var isAdmin bool
+	if err := row.Scan(&username, &isAdmin); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not fetch user data"})
 	}
 
-	userData := fiber.Map{
-		"ID": id,
-		"Username": username,	
+	userData := models.UserInfo{
+		Username: username,	
+		IsAdmin: isAdmin,
 	}
 
 	return c.Status(fiber.StatusOK).JSON(userData)

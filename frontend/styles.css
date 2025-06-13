@@ -330,6 +330,13 @@ body {
     white-space: nowrap;
 }
 
+#userProfileNav .dropdown-toggle .badge {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
 #userProfileNav .dropdown-toggle i {
     font-size: 1.3rem;
 }

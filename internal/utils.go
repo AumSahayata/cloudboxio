@@ -19,17 +19,28 @@ func ResolveFileNameConflict(userID, originalName string, isShared bool) (string
 
 	for {
 		var exists bool
-		stmt := `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = ?)`
+		var stmt string
+		var err error
 
-		err := db.DB.QueryRow(stmt, finalname, userID, isShared).Scan(&exists)
+		// If shared then only check for filename to resolve conflict otherwise also consider user
+		if isShared {
+			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND is_shared = 1)`
+			err = db.DB.QueryRow(stmt, finalname).Scan(&exists)
+		} else {
+			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = 0)`
+			err = db.DB.QueryRow(stmt, finalname, userID).Scan(&exists)
+		}
+
 		if err != nil {
 			return "", err
 		}
 
+		// If filename does not exists break the loop and return new name
 		if !exists {
 			break
 		}
 
+		// Create new file name and increment counter for next time
 		finalname = fmt.Sprintf("%s(%d)%s", base, counter, ext)
 		counter++
 	}
@@ -52,6 +63,7 @@ func CleanParam(param string) (string, error) {
 	return cleanedParam, nil
 }
 
+// Check for admin setup completion
 func IsAdminSetup() bool {
 	var adminSetupDone string
 	row := db.DB.QueryRow(`SELECT value FROM settings WHERE key = "admin_setup_done"`)
@@ -66,6 +78,7 @@ func IsAdminSetup() bool {
 	return false
 }
 
+// Change settings
 func ChangeSetting(key, newValue string) error {
 	_, err := db.DB.Exec(`UPDATE settings SET value = ? WHERE key = ?`, newValue, key)
 	if err != nil {

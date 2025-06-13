@@ -6,6 +6,11 @@ type User struct {
 	Password string 
 }
 
+type UserInfo struct {
+	Username string `json:"username"`
+	IsAdmin bool `json:"is_admin"`
+}
+
 type SignUp struct{
 	Username string `json:"username"`
 	Password string `json:"password"`

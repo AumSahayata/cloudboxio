@@ -30,7 +30,13 @@
                             <span id="navUsername">User</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userProfileDropdown">
-                            <li><span class="dropdown-item-text text-muted" id="navEmail"></span></li>
+                            <li id="createUserNavItem" style="display: none;"><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                                <i class="bi bi-person-plus me-1"></i>Create User
+                            </button></li>
+                            <li id="createUserDivider" style="display: none;"><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                                <i class="bi bi-key me-1"></i>Reset Password
+                            </button></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><button class="dropdown-item text-danger" onclick="logout()">
                                 <i class="bi bi-box-arrow-right me-1"></i>Logout
@@ -54,9 +60,6 @@
                     <div class="welcome-buttons">
                         <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#loginModal">
                             <i class="bi bi-box-arrow-in-right me-1"></i>Login
-                        </button>
-                        <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#signupModal">
-                            <i class="bi bi-person-plus me-1"></i>Sign Up
                         </button>
                     </div>
                 </div>
@@ -125,8 +128,8 @@
                 <div class="modal-body">
                     <form id="loginForm">
                         <div class="mb-3">
-                            <label for="loginEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="loginEmail" required>
+                            <label for="loginUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="loginUsername" required>
                         </div>
                         <div class="mb-3">
                             <label for="loginPassword" class="form-label">Password</label>
@@ -144,34 +147,71 @@
         </div>
     </div>
 
-    <!-- Signup Modal -->
-    <div class="modal fade" id="signupModal" tabindex="-1">
+    <!-- Reset Password Modal -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Sign Up</h5>
+                    <h5 class="modal-title">Reset Password</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="signupForm">
+                    <form id="resetPasswordForm">
                         <div class="mb-3">
-                            <label for="signupUsername" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="signupUsername" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="signupEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="signupEmail" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="signupPassword" class="form-label">Password</label>
+                            <label for="currentPassword" class="form-label">Current Password</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="signupPassword" required>
-                                <button class="btn btn-outline-secondary" type="button" id="toggleSignupPassword">
+                                <input type="password" class="form-control" id="currentPassword" required>
+                                <button class="btn btn-outline-secondary" type="button" id="toggleCurrentPassword">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">New Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="newPassword" required minlength="8">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Password must be at least 8 characters long</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Reset Password</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm">
+                        <div class="mb-3">
+                            <label for="newUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="newUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserPassword" class="form-label">Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="newUserPassword" required minlength="8">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleNewUserPassword">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Password must be at least 8 characters long</div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="isAdminCheckbox">
+                            <label class="form-check-label" for="isAdminCheckbox">Make this user an admin</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Create User</button>
                     </form>
                 </div>
             </div>
