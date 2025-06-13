@@ -68,6 +68,7 @@ function createFileListItem(file) {
                 <small class="text-muted d-block">
                     ${formatFileSize(file.size)} • ${formatDate(file.uploaded_at)}
                     ${isPublic ? ' • Public' : ''}
+                    ${file.uploaded_by ? ` • Uploaded by: ${file.uploaded_by}` : ''}
                 </small>
             </div>
             <div class="btn-group">

@@ -101,6 +101,7 @@ func ListMyFiles(c *fiber.Ctx) error {
 			Filename: filename,
 			Size: size,
 			UploadedAt: uploadedAt,
+			UploadedBy: "Me",
 		})
 	}
 
@@ -109,7 +110,7 @@ func ListMyFiles(c *fiber.Ctx) error {
 
 func ListSharedFiles(c *fiber.Ctx) error {
 	// Query the database for the metadata
-	rows, err := db.DB.Query(`SELECT id, filename, size, uploaded_at FROM metadata WHERE is_shared = TRUE`)
+	rows, err := db.DB.Query(`SELECT u.username, md.id, md.filename, md.size, md.uploaded_at FROM metadata AS md JOIN users AS u ON md.user_id = u.id WHERE md.is_shared = TRUE`)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to query files"})
 	}
@@ -123,8 +124,9 @@ func ListSharedFiles(c *fiber.Ctx) error {
 		var filename string
 		var size int64
 		var uploadedAt string
+		var uploadedBy string
 
-		if err := rows.Scan(&fileID, &filename, &size, &uploadedAt); err != nil {
+		if err := rows.Scan(&uploadedBy, &fileID, &filename, &size, &uploadedAt); err != nil {
 			continue
 		}
 
@@ -133,6 +135,7 @@ func ListSharedFiles(c *fiber.Ctx) error {
 			Filename: filename,
 			Size: size,
 			UploadedAt: uploadedAt,
+			UploadedBy: uploadedBy,
 		})
 	}
 
@@ -142,6 +145,10 @@ func ListSharedFiles(c *fiber.Ctx) error {
 func DownloadFile(c *fiber.Ctx) error {
 	// Get file name from the endpoint parameters using request context
 	fileID := c.Params("fileid")
+	fileID, err := internal.CleanParam(fileID)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"File ID provided is not proper"})
+	}
 
 	// Find the full file path
 	var path string
@@ -165,6 +172,10 @@ func DeleteFile(c *fiber.Ctx) error {
 
 	// Get and sanitize filename
 	fileID := c.Params("fileid")
+	fileID, err := internal.CleanParam(fileID)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"File ID provided is not proper"})
+	}
 
 	// Find the full file path and share status
 	var shared bool
@@ -172,7 +183,7 @@ func DeleteFile(c *fiber.Ctx) error {
 	var filename string
 
 	row := db.DB.QueryRow(`SELECT filename, is_shared, path FROM metadata WHERE id = ? LIMIT 1`, fileID)
-	if err := row.Scan(&filename, &shared, &path); err != nil {
+	if err = row.Scan(&filename, &shared, &path); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "File not found"})
 		}
@@ -180,13 +191,12 @@ func DeleteFile(c *fiber.Ctx) error {
 	}
 
 	// Deletes the file from the disk
-	if err := os.Remove(path); err != nil {
+	if err = os.Remove(path); err != nil {
 		internal.FileOps.Println("Error deleting file:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete file"})
 	}
 
 	// Deletes the metadata of the file
-	var err error
 	if shared {
 		_, err = db.DB.Exec(`DELETE FROM metadata WHERE id = ? AND is_shared = ?`, fileID, true)
 	} else {

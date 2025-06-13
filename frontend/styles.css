@@ -8,6 +8,11 @@ body {
 .navbar {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     padding: 1rem 0;
+    position: relative;
+}
+
+.navbar .container {
+    position: relative;
 }
 
 .navbar-brand {
@@ -275,6 +280,146 @@ body {
     margin: 1.75rem auto;
 }
 
+/* User Details Styles */
+#userDetailsSection {
+    margin-bottom: 2rem;
+}
+
+#userDetails .card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+#userDetails .card-body {
+    padding: 1.5rem;
+}
+
+#userDetails .card-title {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+#userDetails .user-info p {
+    margin-bottom: 0.75rem;
+    color: #555;
+}
+
+#userDetails .user-info strong {
+    color: #333;
+    margin-right: 0.5rem;
+}
+
+/* User Profile Dropdown Styles */
+#userProfileNav {
+    position: static;
+}
+
+#userProfileNav .dropdown {
+    position: static;
+}
+
+#userProfileNav .dropdown-toggle {
+    text-decoration: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+#userProfileNav .dropdown-toggle i {
+    font-size: 1.3rem;
+}
+
+#userProfileNav .dropdown-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+#userProfileNav .dropdown-menu {
+    min-width: 280px;
+    padding: 1rem 0;
+    margin-top: 0.5rem;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: absolute;
+    right: 1rem;
+    left: auto;
+    transform: none !important;
+}
+
+#userProfileNav .dropdown-item-text {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+    color: #666;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 0.5rem;
+    white-space: normal;
+    word-break: break-word;
+}
+
+#userProfileNav .dropdown-item {
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+#userProfileNav .dropdown-item i {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+#userProfileNav .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+#userProfileNav .dropdown-item.text-danger:hover {
+    background-color: #dc3545;
+    color: white !important;
+}
+
+/* Loading overlay styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.loading-message {
+    color: #666;
+    margin-top: 1rem;
+}
+
+/* Filename display styles */
+.desktop-filename {
+    display: inline;
+}
+
+.mobile-filename {
+    display: none;
+}
+
 /* Responsive styles */
 @media (max-width: 991px) {
     .list-group-item .d-flex {
@@ -292,6 +437,28 @@ body {
 
     .btn-group .btn i {
         margin-right: 0.25rem;
+    }
+
+    #userProfileNav .dropdown-toggle {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+
+    #userProfileNav .dropdown-menu {
+        min-width: 250px;
+        padding: 0.75rem 0;
+        margin-top: 0.25rem;
+        right: 0.5rem;
+    }
+
+    #userProfileNav .dropdown-item-text {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    #userProfileNav .dropdown-item {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
     }
 }
 
@@ -360,52 +527,30 @@ body {
         padding: 0.875rem 1.5rem;
     }
 
-    .navbar {
-        padding: 0.75rem 0;
+    .desktop-filename {
+        display: none;
     }
 
-    .navbar-brand {
-        font-size: 1.25rem;
-    }
-
-    #logoutNav .btn {
-        padding: 0.4rem 1rem;
-        font-size: 0.9rem;
+    .mobile-filename {
+        display: inline;
     }
 
     #userProfileNav .dropdown-toggle {
         padding: 0.5rem 0.75rem;
-        font-size: 1rem;
-    }
-
-    #userProfileNav .dropdown-toggle i {
-        font-size: 1.2rem;
     }
 
     #userProfileNav .dropdown-menu {
-        min-width: 200px;
-        padding: 0.75rem 0;
-        margin-top: 0.25rem;
-        border-radius: 0.25rem;
-        position: absolute;
-        top: 100%;
-        left: auto;
-        right: 0;
-        transform: none;
+        min-width: 220px;
+        padding: 0.5rem 0;
+        right: 0.25rem;
     }
 
     #userProfileNav .dropdown-item-text {
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
+        padding: 0.5rem 0.75rem;
     }
 
     #userProfileNav .dropdown-item {
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
-    }
-
-    #userProfileNav .dropdown-item i {
-        font-size: 1.1rem;
+        padding: 0.5rem 0.75rem;
     }
 }
 
@@ -424,91 +569,4 @@ body {
         max-width: 500px;
         margin: 1.75rem auto;
     }
-}
-
-/* User Details Styles */
-#userDetailsSection {
-    margin-bottom: 2rem;
-}
-
-#userDetails .card {
-    border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-}
-
-#userDetails .card-body {
-    padding: 1.5rem;
-}
-
-#userDetails .card-title {
-    color: #333;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-}
-
-#userDetails .user-info p {
-    margin-bottom: 0.75rem;
-    color: #555;
-}
-
-#userDetails .user-info strong {
-    color: #333;
-    margin-right: 0.5rem;
-}
-
-/* User Profile Dropdown Styles */
-#userProfileNav .dropdown-toggle {
-    text-decoration: none;
-    padding: 0.75rem 1.25rem;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-#userProfileNav .dropdown-toggle i {
-    font-size: 1.3rem;
-}
-
-#userProfileNav .dropdown-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-}
-
-#userProfileNav .dropdown-menu {
-    min-width: 280px;
-    padding: 1rem 0;
-    margin-top: 0.5rem;
-    border: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-#userProfileNav .dropdown-item-text {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.95rem;
-    color: #666;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 0.5rem;
-}
-
-#userProfileNav .dropdown-item {
-    padding: 0.75rem 1.25rem;
-    display: flex;
-    align-items: center;
-    font-size: 0.95rem;
-}
-
-#userProfileNav .dropdown-item i {
-    margin-right: 0.75rem;
-    font-size: 1.1rem;
-}
-
-#userProfileNav .dropdown-item:hover {
-    background-color: #f8f9fa;
-}
-
-#userProfileNav .dropdown-item.text-danger:hover {
-    background-color: #dc3545;
-    color: white !important;
 } 
