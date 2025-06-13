@@ -63,13 +63,14 @@ func main() {
 	}
 
 	//Public routes
-	app.Post("/signup", handlers.SignUp)
 	app.Post("/login", handlers.Login)
-
+	
 	//Protected routes
 	app.Use(internal.JWTProtected())
-
+	
 	// Files endpoint
+	app.Put("/reset-password", handlers.ResetPassword)
+	app.Post("/signup", handlers.SignUp)
 	app.Post("/upload/:shared?", handlers.UploadFile)
 	app.Get("/my-files", handlers.ListMyFiles)
 	app.Get("/shared-files", handlers.ListSharedFiles)
@@ -77,7 +78,7 @@ func main() {
 	app.Delete("/file/:fileid", handlers.DeleteFile)
 	
 	// User endpoints
-	app.Get("/user-info", handlers.GetUserInfo)
+	app.Get("/user-info", handlers.GetUsername)
 
 	// Create and hold your own TCP listener
     addr := ":" + os.Getenv("PORT")

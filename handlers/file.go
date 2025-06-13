@@ -3,10 +3,8 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/AumSahayata/cloudboxio/db"
 	"github.com/AumSahayata/cloudboxio/internal"
@@ -43,7 +41,7 @@ func UploadFile(c *fiber.Ctx) error {
 		}
 	}
 
-	filename, err := resolveFileNameConflict(userID, file.Filename, isShared)
+	filename, err := internal.ResolveFileNameConflict(userID, file.Filename, isShared)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not resolve filename"})
 	}
@@ -212,32 +210,4 @@ func DeleteFile(c *fiber.Ctx) error {
 	filename)
 
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{"message": "File deleted successfully"})
-}
-
-func resolveFileNameConflict(userID, originalName string, isShared bool) (string, error) {
-	// Split name and extension
-	ext := filepath.Ext(originalName)
-	base := strings.TrimSuffix(originalName, ext)
-
-	finalname := originalName
-	counter := 1
-
-	for {
-		var exists bool
-		stmt := `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = ?)`
-
-		err := db.DB.QueryRow(stmt, finalname, userID, isShared).Scan(&exists)
-		if err != nil {
-			return "", err
-		}
-
-		if !exists {
-			break
-		}
-
-		finalname = fmt.Sprintf("%s(%d)%s", base, counter, ext)
-		counter++
-	}
-
-	return finalname, nil
 }

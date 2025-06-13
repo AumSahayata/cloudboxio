@@ -16,11 +16,12 @@ func InitJWT() {
 	SecretKey = []byte(ensureJWTSecret())
 }
 
-func GenerateToken(userID string) (string, error) {
+func GenerateToken(userID string, isAdmin bool, expTime int) (string, error) {
 	// Payload for JWT
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"exp" : time.Now().Add(time.Hour * 72).Unix(),
+		"is_admin": isAdmin,
+		"exp" : time.Now().Add(time.Hour * time.Duration(expTime)).Unix(),
 	}
 
 	// Create the token

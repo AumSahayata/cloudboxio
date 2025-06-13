@@ -36,8 +36,10 @@ func JWTProtected() fiber.Handler {
 
 		// Extract payload from the token
 		claims := token.Claims.(jwt.MapClaims)
+		
 		// Storeing data in request context
 		c.Locals("user_id", claims["user_id"])
+		c.Locals("is_admin", claims["is_admin"])
 
 		return c.Next()
 	}
