@@ -41,7 +41,12 @@ func main() {
 	})
 
 	// Initiate database
-	db.InitDB()
+	database, err := db.InitDB()
+	if err != nil {
+		internal.Error.Fatalln(err)
+	}
+
+	defer db.CloseDB(database)
 	
 	// Apply CORS globally
 	app.Use(internal.CORSMiddleware())
@@ -63,23 +68,26 @@ func main() {
 		internal.Info.Printf("USE_DEFAULT_UI=false — UI not served")
 	}
 
+	authHandler := handlers.NewAuthHandler(database)
+	fileHandler := handlers.NewFileHandler(database)
+
 	//Public routes
-	app.Post("/login", handlers.Login)
+	app.Post("/login", authHandler.Login)	
 	
 	//Protected routes
 	app.Use(internal.JWTProtected())
 	
 	// Files endpoint
-	app.Post("/upload/:shared?", handlers.UploadFile)
-	app.Get("/my-files", handlers.ListMyFiles)
-	app.Get("/shared-files", handlers.ListSharedFiles)
-	app.Get("/file/:fileid", handlers.DownloadFile)
-	app.Delete("/file/:fileid", handlers.DeleteFile)
+	app.Post("/upload/:shared?", fileHandler.UploadFile)
+	app.Get("/my-files", fileHandler.ListMyFiles)
+	app.Get("/shared-files", fileHandler.ListSharedFiles)
+	app.Get("/file/:fileid", fileHandler.DownloadFile)
+	app.Delete("/file/:fileid", fileHandler.DeleteFile)
 	
 	// User endpoints
-	app.Post("/signup", handlers.SignUp)
-	app.Put("/reset-password", handlers.ResetPassword)
-	app.Get("/user-info", handlers.GetUserInfo)
+	app.Post("/signup", authHandler.SignUp)
+	app.Put("/reset-password", authHandler.ResetPassword)
+	app.Get("/user-info", authHandler.GetUserInfo)
 
 	// Create and hold own TCP listener (not using fiber's listener)
     addr := ":" + os.Getenv("PORT")
@@ -108,7 +116,4 @@ func main() {
 	} else {
 		internal.Info.Println("Server shut down gracefully")
 	}
-
-	// Close DB
-	db.CloseDB()
 }

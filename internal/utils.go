@@ -1,15 +1,14 @@
 package internal
 
 import (
+	"database/sql"
 	"fmt"
 	"net/url"
 	"path/filepath"
 	"strings"
-
-	"github.com/AumSahayata/cloudboxio/db"
 )
 
-func ResolveFileNameConflict(userID, originalName string, isShared bool) (string, error) {
+func ResolveFileNameConflict(userID, originalName string, isShared bool, db *sql.DB) (string, error) {
 	// Split name and extension
 	ext := filepath.Ext(originalName)
 	base := strings.TrimSuffix(originalName, ext)
@@ -25,10 +24,10 @@ func ResolveFileNameConflict(userID, originalName string, isShared bool) (string
 		// If shared then only check for filename to resolve conflict otherwise also consider user
 		if isShared {
 			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND is_shared = 1)`
-			err = db.DB.QueryRow(stmt, finalname).Scan(&exists)
+			err = db.QueryRow(stmt, finalname).Scan(&exists)
 		} else {
 			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = 0)`
-			err = db.DB.QueryRow(stmt, finalname, userID).Scan(&exists)
+			err = db.QueryRow(stmt, finalname, userID).Scan(&exists)
 		}
 
 		if err != nil {
@@ -64,9 +63,9 @@ func CleanParam(param string) (string, error) {
 }
 
 // Check for admin setup completion
-func IsAdminSetup() bool {
+func IsAdminSetup(db *sql.DB) bool {
 	var adminSetupDone string
-	row := db.DB.QueryRow(`SELECT value FROM settings WHERE key = "admin_setup_done"`)
+	row := db.QueryRow(`SELECT value FROM settings WHERE key = "admin_setup_done"`)
 	if err := row.Scan(&adminSetupDone); err != nil {
 		return false
 	}
@@ -79,8 +78,8 @@ func IsAdminSetup() bool {
 }
 
 // Change settings
-func ChangeSetting(key, newValue string) error {
-	_, err := db.DB.Exec(`UPDATE settings SET value = ? WHERE key = ?`, newValue, key)
+func ChangeSetting(key, newValue string, db *sql.DB) error {
+	_, err := db.Exec(`UPDATE settings SET value = ? WHERE key = ?`, newValue, key)
 	if err != nil {
 		return err
 	}
