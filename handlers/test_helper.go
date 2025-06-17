@@ -35,7 +35,10 @@ func SetupTestContext(t *testing.T) *TestContext {
 	if err != nil {
 		t.Fatal("Failed to hash password:", err)
 	}
-	database.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, "test-id", username, hashedPwd, false)
+	_, err = database.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, "test-id", username, hashedPwd, false)
+	if err != nil {
+		t.Fatalf("Failed to insert user for testing:, %v", err)
+	}
 
 	// Setup app
 	app := fiber.New()

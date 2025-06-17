@@ -27,12 +27,18 @@ func GenerateENV() bool {
 	defer file.Close()
 
 	// Writing to .env file
-	file.WriteString("PORT=3000\n")
-	file.WriteString("LOG_TO_CONSOLE=true\n")
-	file.WriteString("LOG_FILE_OPS=true\n")
-	file.WriteString("USE_DEFAULT_UI=true\n")
-	file.WriteString("FILES_DIR=uploads/\n")
-	file.WriteString("SHARED_DIR=shared/\n")
+	envContent := `PORT=3000
+LOG_TO_CONSOLE=true
+LOG_FILE_OPS=true
+USE_DEFAULT_UI=true
+FILES_DIR=uploads/
+SHARED_DIR=shared/
+`
+
+	_, err = file.WriteString(envContent)
+	if err != nil {
+		log.Fatalf("Failed to write to .env: %v", err)
+	}
 
 	log.Println("Created .env file")
 	return true

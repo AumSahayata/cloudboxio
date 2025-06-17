@@ -152,7 +152,7 @@ func (h *FileHandler) DownloadFile(c *fiber.Ctx) error {
 	fileID := c.Params("fileid")
 	fileID, err := internal.CleanParam(fileID)
 	if err != nil {
-		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"File ID provided is not proper"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"File ID provided is not proper"})
 	}
 
 	// Find the full file path
@@ -179,7 +179,7 @@ func (h *FileHandler) DeleteFile(c *fiber.Ctx) error {
 	fileID := c.Params("fileid")
 	fileID, err := internal.CleanParam(fileID)
 	if err != nil {
-		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"File ID provided is not proper"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"File ID provided is not proper"})
 	}
 
 	// Find the full file path and share status
