@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AumSahayata/cloudboxio/db"
 	"github.com/AumSahayata/cloudboxio/internal"
 	"github.com/AumSahayata/cloudboxio/models"
 
@@ -15,7 +14,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func SignUp(c *fiber.Ctx) error {
+type AuthHandler struct {
+    DB *sql.DB
+}
+
+func NewAuthHandler(database *sql.DB) *AuthHandler {
+    return &AuthHandler{DB: database}
+}
+
+func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 	isAdmin := c.Locals("is_admin").(bool)
 
 	if !isAdmin{
@@ -39,7 +46,7 @@ func SignUp(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Password hashing failed"})
 	}
 
-	stmt, err := db.DB.Prepare("INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)")
+	stmt, err := h.DB.Prepare("INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to prepare statement"})
 	}
@@ -56,7 +63,7 @@ func SignUp(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message":"User created"})
 }
 
-func Login(c *fiber.Ctx) error {
+func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req models.Login
 	// Put the data from the request body into req
 	if err := c.BodyParser(&req); err != nil {
@@ -69,7 +76,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// Get user from DB
-	row := db.DB.QueryRow(`SELECT id, password, is_admin FROM users WHERE username = ?`, req.Username)
+	row := h.DB.QueryRow(`SELECT id, password, is_admin FROM users WHERE username = ?`, req.Username)
 
 	var userID, hashedpwd string
 	var is_admin bool
@@ -82,7 +89,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Invalid credentials"})
 	}
 
-	if !internal.IsAdminSetup() && !is_admin{
+	if !internal.IsAdminSetup(h.DB) && !is_admin{
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Please login and reset admin password first."})
 	}
 
@@ -95,7 +102,7 @@ func Login(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"token":token})
 }
 
-func ResetPassword(c *fiber.Ctx) error {
+func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	isAdmin := c.Locals("is_admin").(bool)
 
@@ -115,7 +122,7 @@ func ResetPassword(c *fiber.Ctx) error {
 	}
 
 	// Find user
-	row := db.DB.QueryRow("SELECT id, username, password FROM users WHERE id = ?", userID)
+	row := h.DB.QueryRow("SELECT id, username, password FROM users WHERE id = ?", userID)
     var user models.User
     if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"User not found"}) 
@@ -133,13 +140,13 @@ func ResetPassword(c *fiber.Ctx) error {
     }
 
 	// Update new password
-	if _, err := db.DB.Exec(`UPDATE users SET password = ? WHERE id = ?`, string(hashedNew), userID); err != nil {
+	if _, err := h.DB.Exec(`UPDATE users SET password = ? WHERE id = ?`, string(hashedNew), userID); err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to update password"})
     }
 
 	// Complete admin setup
-	if isAdmin && !internal.IsAdminSetup() {
-		if err := internal.ChangeSetting("admin_setup_done", "true"); err != nil {
+	if isAdmin && !internal.IsAdminSetup(h.DB) {
+		if err := internal.ChangeSetting("admin_setup_done", "true", h.DB); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Password changed, but failed to update system state"})
 		}
 		// Delete temp_admin_credentials.txt file
@@ -151,10 +158,10 @@ func ResetPassword(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Password reset successful"})
 }
 
-func GetUserInfo(c *fiber.Ctx) error {
+func (h *AuthHandler) GetUserInfo(c *fiber.Ctx) error {
 	var userID = c.Locals("user_id")
 
-	row := db.DB.QueryRow(`SELECT username, is_admin FROM users WHERE id = ?`, userID)
+	row := h.DB.QueryRow(`SELECT username, is_admin FROM users WHERE id = ?`, userID)
 
 	var username string
 	var isAdmin bool
