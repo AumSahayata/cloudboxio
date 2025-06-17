@@ -68,7 +68,7 @@ func LoginAndGetToken(t *testing.T, app *fiber.App, username, password string) s
 	req := httptest.NewRequest("POST", "/login", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "aaplication/json")
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, -1)
 	if err != nil {
 		t.Fatalf("Login request failed: %v", err)
 	}
