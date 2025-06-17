@@ -218,69 +218,20 @@ func TestSignupAsNonAdmin(t *testing.T) {
 }
 
 func TestProtectedRouteWithValidToken(t *testing.T) {
-	db := tests.SetupTestDB()
-	defer db.Close()
+	ctx := SetupTestContext(t)
 
-	tests.SetAdminSetupFlag(db, true)
+	tests.SetAdminSetupFlag(ctx.DB, true)
 
-	username := "testuser"
-	password := "secure123"
+	handler := NewAuthHandler(ctx.DB)
 
-	// Hash password
-	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	if err != nil {
-		t.Fatal("Failed to hash password:", err)
-	}
-
-	// Insert test user
-	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`,
-		"test-id", username, string(hashedPwd), false)
-	if err != nil {
-		t.Fatal("Failed to insert test user:", err)
-	}
-
-	app := fiber.New()
-	handler := NewAuthHandler(db)
-
-	app.Post("/login", handler.Login)
-	app.Use(internal.JWTProtected())
-	app.Get("/user-info", handler.GetUserInfo)
-
-	// --- Login to get JWT token ---
-	loginPayload := map[string]string{
-		"username": username,
-		"password": password,
-	}
-	loginBody, _ := json.Marshal(loginPayload)
-
-	loginReq := httptest.NewRequest("POST", "/login", bytes.NewReader(loginBody))
-	loginReq.Header.Set("Content-Type", "application/json")
-
-	loginResp, err := app.Test(loginReq, -1)
-	if err != nil {
-		t.Fatal("Login request failed:", err)
-	}
-	defer loginResp.Body.Close()
-
-	if loginResp.StatusCode != fiber.StatusOK {
-		t.Fatalf("Expected login 200, got %d", loginResp.StatusCode)
-	}
-
-	var loginData map[string]string
-	if err := json.NewDecoder(loginResp.Body).Decode(&loginData); err != nil {
-		t.Fatal("Failed to parse login response:", err)
-	}
-
-	token := loginData["token"]
-	if token == "" {
-		t.Fatal("Expected token in response, got empty string")
-	}
+	ctx.App.Use(internal.JWTProtected())
+	ctx.App.Get("/user-info", handler.GetUserInfo)
 
 	// --- Access protected route with token ---
 	protectedReq := httptest.NewRequest("GET", "/user-info", nil)
-	protectedReq.Header.Set("Authorization", "Bearer "+token)
+	protectedReq.Header.Set("Authorization", "Bearer "+ctx.Token)
 
-	protectedResp, err := app.Test(protectedReq, -1)
+	protectedResp, err := ctx.App.Test(protectedReq, -1)
 	if err != nil {
 		t.Fatal("Protected route request failed:", err)
 	}

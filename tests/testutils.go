@@ -44,9 +44,8 @@ func SetAdminSetupFlag(db *sql.DB, isDone bool) {
 		val = "true"
 	}
 
-	_, err := db.Exec(`INSERT INTO settings (key, value) VALUES ("admin_setup_done", ?)`, val)
+	_, err := db.Exec(`INSERT OR REPLACE INTO settings (key, value) VALUES ("admin_setup_done", ?)`, val)
 	if err != nil {
 		log.Printf("SetAdminSetupFlag failed: %v", err)
 	}
 }
-
