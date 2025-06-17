@@ -125,7 +125,7 @@ func checkAndCreateAdmin(db *sql.DB) {
     }
     if count == 0 {
         if err := createAdmin(db); err != nil {
-			log.Fatalf("admin creation failed: %w", err)
+			log.Fatalln("admin creation failed: ", err)
 		}
     }
 }
