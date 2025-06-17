@@ -166,7 +166,7 @@ func TestSignupAsAdmin(t *testing.T) {
 	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jsonbody))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, -1)
 	if err != nil {
 		t.Fatalf("HTTP request failed: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestSignupAsNonAdmin(t *testing.T) {
 	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jsonbody))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, -1)
 	if err != nil {
 		t.Fatalf("HTTP request failed: %v", err)
 	}
