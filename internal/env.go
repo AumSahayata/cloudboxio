@@ -33,6 +33,7 @@ LOG_FILE_OPS=true
 USE_DEFAULT_UI=true
 FILES_DIR=uploads/
 SHARED_DIR=shared/
+MAX_UPLOAD_SIZE_MB=100
 `
 
 	_, err = file.WriteString(envContent)

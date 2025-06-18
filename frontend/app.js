@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Upload each file individually
             for (let file of files) {
                 const formData = new FormData();
-                formData.append('file', file);
+                formData.append('files', file);
 
                 try {
                     const response = await fetch(uploadUrl, {

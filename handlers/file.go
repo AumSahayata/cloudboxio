@@ -29,10 +29,13 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 	sharedDir := os.Getenv("SHARED_DIR")
 
 	//Get file from form
-	file, err := c.FormFile("file")
+	// file, err := c.FormFile("file")
+	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "File is required"})
 	}
+
+	files := form.File["files"]
 
 	// Create shared folder if not exists
 	dirPath := filepath.Join(fileDir, sharedDir)
@@ -48,33 +51,34 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 		}
 	}
 
-	filename, err := internal.ResolveFileNameConflict(userID, file.Filename, isShared, h.DB)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not resolve filename"})
+	for _, file := range files {
+		
+		filename, err := internal.ResolveFileNameConflict(userID, file.Filename, isShared, h.DB)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not resolve filename"})
+		}
+		
+		// Save file to user-specific directory
+		savePath := filepath.Join(dirPath, filename)
+		if err := c.SaveFile(file, savePath); err != nil {
+			return err
+		}
+		
+		// Insert metadata into SQLite DB
+		stmt := `INSERT INTO metadata (user_id, filename, size, path, is_shared) VALUES (?, ?, ?, ?, ?);`
+		_, err = h.DB.Exec(stmt, userID, filename, file.Size, savePath, isShared)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to save metadata"})
+		}
+		
+		internal.FileOps.Printf("User [%s] uploaded %s file: %s",
+			userID,
+			func() string {if isShared { return "shared" } else { return "personal" } }(), filename,
+		)
 	}
-
-	// Save file to user-specific directory
-	savePath := filepath.Join(dirPath, filename)
-	if err := c.SaveFile(file, savePath); err != nil {
-		return err
-	}
-
-	// Insert metadata into SQLite DB
-	stmt := `INSERT INTO metadata (user_id, filename, size, path, is_shared) VALUES (?, ?, ?, ?, ?);`
-	_, err = h.DB.Exec(stmt, userID, filename, file.Size, savePath, isShared)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to save metadata"})
-	}
-
-	internal.FileOps.Printf("User [%s] uploaded %s file: %s",
-	userID,
-	func() string {if isShared { return "shared" } else { return "personal" } }(),
-	filename)
-
+	
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message":"File uploaded successfully",
-		"name":filename,
-		"size":file.Size,
+		"message":"File/s uploaded successfully",
 	})
 }
 
