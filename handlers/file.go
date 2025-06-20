@@ -28,8 +28,7 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 	fileDir := os.Getenv("FILES_DIR")
 	sharedDir := os.Getenv("SHARED_DIR")
 
-	//Get file from form
-	// file, err := c.FormFile("file")
+	//Get files from form
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "File is required"})
@@ -82,44 +81,35 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FileHandler) ListMyFiles(c *fiber.Ctx) error {
+func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
+	shared := c.Query("shared", "false")
+	isShared := shared == "true"
 
-	// Query the database for the metadata
-	rows, err := h.DB.Query(`SELECT id, filename, size, uploaded_at FROM metadata WHERE user_id = ? AND is_shared = FALSE`, userID)
+	var (
+		stmt *sql.Stmt
+		rows *sql.Rows
+		err error
+	)
+
+	if isShared {
+		stmt, err = h.DB.Prepare(`SELECT md.id, md.filename, md.size, md.uploaded_at, u.username FROM metadata AS md JOIN users AS u ON md.user_id = u.id WHERE md.is_shared = TRUE`)
+	} else {
+		stmt, err = h.DB.Prepare(`SELECT id, filename, size, uploaded_at, "Me" FROM metadata WHERE user_id = ? AND is_shared = FALSE`)
+	}
+
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to query files"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to prepare query"})
 	}
-	defer rows.Close()
+	defer stmt.Close()
 
-	fileList := make([]models.File, 0)
-
-	// Use rows to iterate over the metadata 
-	for rows.Next() {
-		var fileID string
-		var filename string
-		var size int64
-		var uploadedAt string
-
-		if err := rows.Scan(&fileID, &filename, &size, &uploadedAt); err != nil {
-			continue
-		}
-
-		fileList = append(fileList, models.File{
-			FileID: fileID,
-			Filename: filename,
-			Size: size,
-			UploadedAt: uploadedAt,
-			UploadedBy: "Me",
-		})
-	}
-
-	return c.Status(fiber.StatusOK).JSON(fileList)
-}
-
-func (h *FileHandler) ListSharedFiles(c *fiber.Ctx) error {
 	// Query the database for the metadata
-	rows, err := h.DB.Query(`SELECT u.username, md.id, md.filename, md.size, md.uploaded_at FROM metadata AS md JOIN users AS u ON md.user_id = u.id WHERE md.is_shared = TRUE`)
+	if isShared {
+		rows, err = stmt.Query()
+	}else {
+		rows, err = stmt.Query(userID)
+	}
+
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to query files"})
 	}
@@ -135,7 +125,7 @@ func (h *FileHandler) ListSharedFiles(c *fiber.Ctx) error {
 		var uploadedAt string
 		var uploadedBy string
 
-		if err := rows.Scan(&uploadedBy, &fileID, &filename, &size, &uploadedAt); err != nil {
+		if err := rows.Scan(&fileID, &filename, &size, &uploadedAt, &uploadedBy); err != nil {
 			continue
 		}
 

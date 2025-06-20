@@ -185,7 +185,7 @@ async function loadFiles() {
     showLoading('Loading files...');
     try {
         // Load my files
-        const myFilesResponse = await fetch(`${API_URL}/my-files`, {
+        const myFilesResponse = await fetch(`${API_URL}/files`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
             },
@@ -200,7 +200,7 @@ async function loadFiles() {
         }
 
         // Load shared files
-        const sharedFilesResponse = await fetch(`${API_URL}/shared-files`, {
+        const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
             },

@@ -88,19 +88,9 @@ func main() {
 	
 	// Files endpoint
 	app.Post("/upload:shared?", fileHandler.UploadFile)
-	app.Get("/my-files", fileHandler.ListMyFiles)
-	app.Get("/shared-files", fileHandler.ListSharedFiles)
+	app.Get("/files:shared?", fileHandler.ListFiles)
 	app.Get("/file/:fileid", fileHandler.DownloadFile)
 	app.Delete("/file/:fileid", fileHandler.DeleteFile)
-	
-	// Upload route with more body size limit
-
-
-	// uploadApp := fiber.New(fiber.Config{
-	// 	BodyLimit: maxUploadSize << 20,
-	// })
-	// app.Mount("/upload", uploadApp)
-	// uploadApp.Post("/:shared?", fileHandler.UploadFile)
 	
 	// User endpoints
 	app.Post("/signup", authHandler.SignUp)
