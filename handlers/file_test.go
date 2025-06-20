@@ -35,14 +35,20 @@ func TestUploadFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	part.Write([]byte("Hello from test1"))
-
+	_, err = part.Write([]byte("Hello from test1"))
+	if err != nil {
+		t.Fatal("Failed to write to test file")
+	}
+	
 	part, err = writer.CreateFormFile("files", filenames[1])
 	if err != nil {
 		t.Fatal(err)
 	}
-	part.Write([]byte("Hello from test2"))
-
+	_, err = part.Write([]byte("Hello from test2"))
+	if err != nil {
+		t.Fatal("Failed to write to test file")
+	}
+	
 	writer.Close()
 	
 	// Create request
@@ -104,14 +110,20 @@ func TestSharedUploadFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	part.Write([]byte("Hello from test3"))
-
+	_, err = part.Write([]byte("Hello from test3"))
+	if err != nil {
+		t.Fatal("Failed to write to test file")
+	}
+	
 	part, err = writer.CreateFormFile("files", filenames[1])
 	if err != nil {
 		t.Fatal(err)
 	}
-	part.Write([]byte("Hello from test4"))
-
+	_, err = part.Write([]byte("Hello from test4"))
+	if err != nil {
+		t.Fatal("Failed to write to test file")
+	}
+	
 	writer.Close()
 	
 	// Create request
