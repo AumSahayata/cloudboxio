@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -34,10 +35,17 @@ func main() {
 	// Initiate JWT
 	internal.InitJWT()
 
+	// Setup max upload size
+	maxUploadSize, err := strconv.Atoi(os.Getenv("MAX_UPLOAD_SIZE_MB"))
+	if err != nil || maxUploadSize <= 0 {
+		maxUploadSize = 100
+	} 
+
 	// Initiate server
 	app := fiber.New(fiber.Config{
 		AppName: "CloudBoxIO",
 		DisableKeepalive: true,
+		BodyLimit:  maxUploadSize << 20,
 	})
 
 	// Initiate database
@@ -77,10 +85,10 @@ func main() {
 	//Protected routes
 	app.Use(internal.JWTProtected())
 	
+	
 	// Files endpoint
-	app.Post("/upload/:shared?", fileHandler.UploadFile)
-	app.Get("/my-files", fileHandler.ListMyFiles)
-	app.Get("/shared-files", fileHandler.ListSharedFiles)
+	app.Post("/upload:shared?", fileHandler.UploadFile)
+	app.Get("/files:shared?", fileHandler.ListFiles)
 	app.Get("/file/:fileid", fileHandler.DownloadFile)
 	app.Delete("/file/:fileid", fileHandler.DeleteFile)
 	

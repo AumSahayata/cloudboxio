@@ -35,6 +35,21 @@ func SetupTestDB() *sql.DB {
 		panic(err)
 	}
 
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS metadata (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id TEXT,
+		filename TEXT,
+		size INTEGER,
+		path TEXT,
+		is_shared BOOLEAN DEFAULT FALSE,
+		uploaded_at string
+		);
+	`)
+	if err != nil {
+		panic(err)
+	}
+
 	return db
 }
 

@@ -235,6 +235,7 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 	if err != nil {
 		t.Fatal("Protected route request failed:", err)
 	}
+	
 	defer protectedResp.Body.Close()
 
 	if protectedResp.StatusCode != fiber.StatusOK {
