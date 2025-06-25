@@ -8,13 +8,13 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // Initialize the database
 func InitDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "file:data.db?_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL")
+	db, err := sql.Open("sqlite", "file:data.db?_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL")
 	if err != nil {
 		log.Fatalln("Failed to open database:", err)
 	}
