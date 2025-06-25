@@ -59,6 +59,9 @@ func main() {
 	// Apply CORS globally
 	app.Use(internal.CORSMiddleware())
 
+	// Rate limiter
+	app.Use(internal.RateLimiterMiddleware())
+
 	// Use default UI for the app
 	if os.Getenv("USE_DEFAULT_UI") == "true" {
 		// Create a virtual filesystem to server frontend
@@ -80,7 +83,7 @@ func main() {
 	fileHandler := handlers.NewFileHandler(database)
 
 	//Public routes
-	app.Post("/login", authHandler.Login)	
+	app.Post("/login", authHandler.Login)
 	
 	//Protected routes
 	app.Use(internal.JWTProtected())
