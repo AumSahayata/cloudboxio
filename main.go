@@ -88,7 +88,6 @@ func main() {
 	//Protected routes
 	app.Use(internal.JWTProtected())
 	
-	
 	// Files endpoint
 	app.Post("/upload:shared?", fileHandler.UploadFile)
 	app.Get("/files:shared?", fileHandler.ListFiles)
