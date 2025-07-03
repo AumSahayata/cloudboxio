@@ -230,7 +230,7 @@ func (h *AuthHandler) DeleteUser(c *fiber.Ctx) error {
 	username := c.Params("username")
 	username, err := internal.CleanParam(username)
 	if err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to validate username"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to validate username"})
 	}
 
 	_, err = h.DB.Exec(`DELETE FROM users WHERE username = ?`, username)
