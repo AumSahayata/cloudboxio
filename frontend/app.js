@@ -1,5 +1,5 @@
 // API Configuration
-const API_URL = 'http://localhost:3000';
+const API_URL = '/api';
 
 // Helper function to truncate text
 function truncateText(text, maxLength = 35) {

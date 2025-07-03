@@ -19,7 +19,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
-const Version = "1.1.0"
+const Version = "1.2.1"
 
 //go:embed frontend/*
 var embeddedFiles embed.FS
@@ -82,22 +82,23 @@ func main() {
 	authHandler := handlers.NewAuthHandler(database)
 	fileHandler := handlers.NewFileHandler(database)
 
+	api := app.Group("/api")
 	//Public routes
-	app.Post("/login", authHandler.Login)
+	api.Post("/login", authHandler.Login)
 	
 	//Protected routes
-	app.Use(internal.JWTProtected())
+	api.Use(internal.JWTProtected())
 	
 	// Files endpoint
-	app.Post("/upload:shared?", fileHandler.UploadFile)
-	app.Get("/files:shared?", fileHandler.ListFiles)
-	app.Get("/file/:fileid", fileHandler.DownloadFile)
-	app.Delete("/file/:fileid", fileHandler.DeleteFile)
+	api.Post("/upload:shared?", fileHandler.UploadFile)
+	api.Get("/files:shared?", fileHandler.ListFiles)
+	api.Get("/file/:fileid", fileHandler.DownloadFile)
+	api.Delete("/file/:fileid", fileHandler.DeleteFile)
 	
 	// User endpoints
-	app.Post("/signup", authHandler.SignUp)
-	app.Put("/reset-password", authHandler.ResetPassword)
-	app.Get("/user-info", authHandler.GetUserInfo)
+	api.Post("/signup", authHandler.SignUp)
+	api.Put("/reset-password", authHandler.ResetPassword)
+	api.Get("/user-info", authHandler.GetUserInfo)
 
 	// Create and hold own TCP listener (not using fiber's listener)
     addr := ":" + os.Getenv("PORT")
