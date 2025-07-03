@@ -23,6 +23,7 @@ func NewAuthHandler(database *sql.DB) *AuthHandler {
 }
 
 func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
 	isAdmin := c.Locals("is_admin").(bool)
 
 	if !isAdmin{
@@ -60,6 +61,7 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to register user"})
 	}
 
+	internal.Info.Printf("ADMIN user [%s] created new user (%s)", userID, req.Username)
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message":"User created"})
 }
 
@@ -178,4 +180,60 @@ func (h *AuthHandler) GetUserInfo(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(userData)
+}
+
+func (h *AuthHandler) GetUsers(c *fiber.Ctx) error {
+	isAdmin := c.Locals("is_admin").(bool)
+
+	if !isAdmin {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Only admin can access users list"})
+	}
+
+	rows, err := h.DB.Query(`SELECT username, is_admin FROM users`)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Users not found"})
+	}
+	
+	usersList := []models.UserInfo{}
+	
+	for rows.Next() {
+		
+		var username string
+		var isADM bool
+		if err := rows.Scan(&username, &isADM); err != nil {
+			continue
+		}
+		usersList = append(usersList, models.UserInfo{
+			Username: username,
+			IsAdmin: isADM,
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(usersList)
+}
+
+func (h *AuthHandler) DeleteUser(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+	isAdmin := c.Locals("is_admin").(bool)
+
+	if !isAdmin {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Only admin can delete users"})
+	}
+
+	username := c.Params("username")
+	username, err := internal.CleanParam(username)
+	if err != nil {
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to validate username"})
+	}
+
+	_, err = h.DB.Exec(`DELETE FROM users WHERE username = ?`, username)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not delete user"})
+	}
+
+	internal.Info.Printf("ADMIN user [%s] deleted user (%s)", userID, username)
+	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{"message": "User deleted successfully"})
 }

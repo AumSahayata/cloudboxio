@@ -180,6 +180,17 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Helper to get token or redirect to login if missing
+function getAuthTokenOrRedirect() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showUnauthenticatedUI();
+        showLoginModal();
+        throw new Error('No authentication token found. Please log in.');
+    }
+    return token;
+}
+
 // Global loadFiles function
 async function loadFiles() {
     showLoading('Loading files...');
@@ -187,7 +198,7 @@ async function loadFiles() {
         // Load my files
         const myFilesResponse = await fetch(`${API_URL}/files`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
             },
         });
         const myFilesData = await myFilesResponse.json();
@@ -202,7 +213,7 @@ async function loadFiles() {
         // Load shared files
         const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
             },
         });
         const sharedFilesData = await sharedFilesResponse.json();
@@ -263,6 +274,7 @@ function logout() {
     
     // Update UI using the new function
     showUnauthenticatedUI();
+    showLoginModal();
 }
 
 // Delete file
@@ -274,10 +286,10 @@ async function deleteFile(fileId) {
         const response = await fetch(`${API_URL}/file/${fileId}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
             },
         });
-
+        handleApiResponse(response);
         if (response.ok) {
             await loadFiles(); // Reload the file list after successful deletion
         } else {
@@ -285,8 +297,7 @@ async function deleteFile(fileId) {
             alert(data.error || 'Delete failed');
         }
     } catch (error) {
-        // console.error('Delete error:', error);
-        alert('Error during delete: ${error}');
+        alert(`Error during delete: ${error.message || error}`);
     } finally {
         hideLoading();
     }
@@ -303,10 +314,10 @@ async function downloadFile(fileId, filename) {
     try {
         const response = await fetch(`${API_URL}/file/${fileId}`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
             },
         });
-
+        handleApiResponse(response);
         if (!response.ok) {
             const data = await response.json();
             throw new Error(data.error || 'Download failed');
@@ -329,8 +340,7 @@ async function downloadFile(fileId, filename) {
         // Clean up the URL
         window.URL.revokeObjectURL(url);
     } catch (error) {
-        // console.error('Download error:', error);
-        alert('Error during download: ${error}');
+        alert(`Error during download: ${error.message || error}`);
     } finally {
         hideLoading();
     }
@@ -364,14 +374,20 @@ async function fetchUserDetails() {
     try {
         const response = await fetch(`${API_URL}/user-info`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
             },
         });
-        
+        handleApiResponse(response);
+        if (response.status === 404) {
+            // User not found, treat as unauthenticated
+            localStorage.removeItem('token');
+            showUnauthenticatedUI();
+            showLoginModal();
+            throw new Error('User not found. Please log in again.');
+        }
         if (!response.ok) {
             throw new Error('Failed to fetch user details');
         }
-        
         const userData = await response.json();
         displayUserDetails(userData);
     } catch (error) {
@@ -383,7 +399,6 @@ async function fetchUserDetails() {
 // Display user details in the UI
 function displayUserDetails(userData) {
     if (!userData) return;
-    
     // Update navigation username
     const navUsername = document.getElementById('navUsername');
     if (navUsername) {
@@ -394,10 +409,16 @@ function displayUserDetails(userData) {
             // Show admin-only options
             document.getElementById('createUserNavItem').style.display = 'block';
             document.getElementById('createUserDivider').style.display = 'block';
+            // Show users panel nav item
+            const showUsersPanelNavItem = document.getElementById('showUsersPanelNavItem');
+            if (showUsersPanelNavItem) showUsersPanelNavItem.style.display = 'block';
         } else {
             // Hide admin-only options
             document.getElementById('createUserNavItem').style.display = 'none';
             document.getElementById('createUserDivider').style.display = 'none';
+            // Hide users panel nav item
+            const showUsersPanelNavItem = document.getElementById('showUsersPanelNavItem');
+            if (showUsersPanelNavItem) showUsersPanelNavItem.style.display = 'none';
         }
     }
 }
@@ -428,6 +449,101 @@ function showUnauthenticatedUI() {
     // Show auth content
     document.getElementById('authSection').style.display = 'block';
     document.getElementById('mainSection').style.display = 'none';
+}
+
+// Helper to show the login modal
+function showLoginModal() {
+    const loginModalElement = document.getElementById('loginModal');
+    if (loginModalElement) {
+        const loginModal = new bootstrap.Modal(loginModalElement);
+        loginModal.show();
+    }
+}
+
+// Update handleApiResponse to show login modal on 498
+function handleApiResponse(response) {
+    if (response.status === 498) {
+        // Token missing or expired
+        localStorage.removeItem('token');
+        showUnauthenticatedUI();
+        showLoginModal();
+        throw new Error('Session expired. Please log in again.');
+    }
+    return response;
+}
+
+// Helper to render the users panel (admin only)
+function renderUsersPanel(users) {
+    const usersList = document.getElementById('usersList');
+    if (!usersList) return;
+    usersList.innerHTML = '';
+    users.forEach(user => {
+        const userItem = document.createElement('div');
+        userItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        userItem.innerHTML = `
+            <span><strong>${user.username}</strong> ${user.is_admin ? '<span class="badge bg-warning">Admin</span>' : ''}</span>
+            <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.username}', this)"><i class="bi bi-trash"></i> Delete</button>
+        `;
+        usersList.appendChild(userItem);
+    });
+}
+
+// Fetch all users (admin only)
+async function fetchAllUsers() {
+    try {
+        showLoading('Loading users...');
+        const response = await fetch(`${API_URL}/users`, {
+            headers: {
+                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
+            },
+        });
+        handleApiResponse(response);
+        if (!response.ok) {
+            throw new Error('Failed to fetch users');
+        }
+        const users = await response.json();
+        renderUsersPanel(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        alert(error.message || 'Failed to load users');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Delete user (admin only)
+async function deleteUser(username, btn) {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    btn.disabled = true;
+    try {
+        showLoading('Deleting user...');
+        const response = await fetch(`${API_URL}/users/${encodeURIComponent(username)}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
+            },
+        });
+        handleApiResponse(response);
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Delete failed');
+        }
+        // Remove user from the list
+        btn.closest('.list-group-item').remove();
+    } catch (error) {
+        alert(`Error during delete: ${error.message || error}`);
+    } finally {
+        hideLoading();
+        btn.disabled = false;
+    }
+}
+
+// Fetch users when the usersModal is shown
+const usersModal = document.getElementById('usersModal');
+if (usersModal) {
+    usersModal.addEventListener('show.bs.modal', () => {
+        fetchAllUsers();
+    });
 }
 
 // Initialize the application
@@ -503,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const response = await fetch(uploadUrl, {
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
                         },
                         body: formData,
                     });
@@ -557,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
                     },
                     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
                 });
@@ -603,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
                     },
                     body: JSON.stringify({ username, password, is_admin: isAdmin })
                 });

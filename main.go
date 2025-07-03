@@ -19,7 +19,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
-const Version = "1.2.1"
+const Version = "1.3.0"
 
 //go:embed frontend/*
 var embeddedFiles embed.FS
@@ -99,6 +99,8 @@ func main() {
 	api.Post("/signup", authHandler.SignUp)
 	api.Put("/reset-password", authHandler.ResetPassword)
 	api.Get("/user-info", authHandler.GetUserInfo)
+	api.Get("/users", authHandler.GetUsers)
+	api.Delete("/users/:username", authHandler.DeleteUser)
 
 	// Create and hold own TCP listener (not using fiber's listener)
     addr := ":" + os.Getenv("PORT")

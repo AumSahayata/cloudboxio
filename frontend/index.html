@@ -34,6 +34,9 @@
                                 <i class="bi bi-person-plus me-1"></i>Create User
                             </button></li>
                             <li id="createUserDivider" style="display: none;"><hr class="dropdown-divider"></li>
+                            <li id="showUsersPanelNavItem" style="display: none;"><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#usersModal">
+                                <i class="bi bi-people me-1"></i>Show All Users
+                            </button></li>
                             <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
                                 <i class="bi bi-key me-1"></i>Reset Password
                             </button></li>
@@ -213,6 +216,23 @@
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Create User</button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Modal (admin only) -->
+    <div class="modal fade" id="usersModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">All Users</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="usersList" class="list-group">
+                        <!-- User list will be rendered here -->
+                    </div>
                 </div>
             </div>
         </div>
