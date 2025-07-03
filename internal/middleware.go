@@ -18,13 +18,13 @@ func JWTProtected() fiber.Handler {
 		auth := c.Get("Authorization")
 
 		if auth == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Missing token"})
+			return c.Status(498).JSON(fiber.Map{"error":"Missing token"})
 		}
 
 		// Split and get the token
 		parts := strings.Split(auth, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token format"})
+			return c.Status(498).JSON(fiber.Map{"error": "Invalid token format"})
 		}
 		tokenString := parts[1]
 

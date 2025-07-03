@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http/httptest"
 	"testing"
 
@@ -18,9 +19,10 @@ func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, false)
+	voidLogger := log.New(io.Discard, "", 0)
 
 	app := fiber.New()
-	handler := NewAuthHandler(db)
+	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
 	payload := map[string]string{"username":"admin", "password": "admin"}
@@ -44,6 +46,7 @@ func TestLoginWrongPassword(t *testing.T) {
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
+	voidLogger := log.New(io.Discard, "", 0)
 
 	// Create test user with known credentials
 	username := "testuser"
@@ -61,7 +64,7 @@ func TestLoginWrongPassword(t *testing.T) {
 
 	// Setup app + handler
 	app := fiber.New()
-	handler := NewAuthHandler(db)
+	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
 	// Incorrect password
@@ -86,6 +89,7 @@ func TestLoginSuccess(t *testing.T) {
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
+	voidLogger := log.New(io.Discard, "", 0)
 
 	// Create test user with known credentials
 	username := "testuser"
@@ -103,7 +107,7 @@ func TestLoginSuccess(t *testing.T) {
 
 	// Setup app + handler
 	app := fiber.New()
-	handler := NewAuthHandler(db)
+	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
 	payload := map[string]string{"username":username, "password": correctPassword,}
@@ -140,13 +144,15 @@ func TestSignupAsAdmin(t *testing.T) {
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
+	voidLogger := log.New(io.Discard, "", 0)
 	
 	app := fiber.New()
-	handler := NewAuthHandler(db)
+	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	
-	// Middleware to inject is_admin = true
+	// Middleware to inject is_admin = true and user_id
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("is_admin", true)
+		c.Locals("user_id", "test-id")
 		return c.Next()
 	})
 	
@@ -183,11 +189,13 @@ func TestSignupAsNonAdmin(t *testing.T) {
 	tests.SetAdminSetupFlag(db, true)
 	
 	app := fiber.New()
-	handler := NewAuthHandler(db)
+	voidLogger := log.New(io.Discard, "", 0)
+	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	
 	// Middleware to inject is_admin = true
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("is_admin", false)
+		c.Locals("user_id", "test-id")
 		return c.Next()
 	})
 	
@@ -222,7 +230,7 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 
 	tests.SetAdminSetupFlag(ctx.DB, true)
 
-	handler := NewAuthHandler(ctx.DB)
+	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
 
 	ctx.App.Use(internal.JWTProtected())
 	ctx.App.Get("/user-info", handler.GetUserInfo)

@@ -19,7 +19,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
-const Version = "1.1.0"
+const Version = "1.3.0"
 
 //go:embed frontend/*
 var embeddedFiles embed.FS
@@ -79,25 +79,28 @@ func main() {
 		internal.Info.Printf("USE_DEFAULT_UI=false — UI not served")
 	}
 
-	authHandler := handlers.NewAuthHandler(database)
+	authHandler := handlers.NewAuthHandler(database, internal.Info, internal.Error)
 	fileHandler := handlers.NewFileHandler(database)
 
+	api := app.Group("/api")
 	//Public routes
-	app.Post("/login", authHandler.Login)
+	api.Post("/login", authHandler.Login)
 	
 	//Protected routes
-	app.Use(internal.JWTProtected())
+	api.Use(internal.JWTProtected())
 	
 	// Files endpoint
-	app.Post("/upload:shared?", fileHandler.UploadFile)
-	app.Get("/files:shared?", fileHandler.ListFiles)
-	app.Get("/file/:fileid", fileHandler.DownloadFile)
-	app.Delete("/file/:fileid", fileHandler.DeleteFile)
+	api.Post("/upload:shared?", fileHandler.UploadFile)
+	api.Get("/files:shared?", fileHandler.ListFiles)
+	api.Get("/file/:fileid", fileHandler.DownloadFile)
+	api.Delete("/file/:fileid", fileHandler.DeleteFile)
 	
 	// User endpoints
-	app.Post("/signup", authHandler.SignUp)
-	app.Put("/reset-password", authHandler.ResetPassword)
-	app.Get("/user-info", authHandler.GetUserInfo)
+	api.Post("/signup", authHandler.SignUp)
+	api.Put("/reset-password", authHandler.ResetPassword)
+	api.Get("/user-info", authHandler.GetUserInfo)
+	api.Get("/users", authHandler.GetUsers)
+	api.Delete("/users/:username", authHandler.DeleteUser)
 
 	// Create and hold own TCP listener (not using fiber's listener)
     addr := ":" + os.Getenv("PORT")
