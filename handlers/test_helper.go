@@ -17,9 +17,10 @@ import (
 )
 
 type TestContext struct {
-	App   *fiber.App
-	DB    *sql.DB
-	Token string
+	App     *fiber.App
+	DB      *sql.DB
+	Log     *log.Logger
+	Token   string
 	TempDir string
 }
 
@@ -28,6 +29,9 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 	// Setup DB
 	database := tests.SetupTestDB()
+
+	// void logger
+	voidLogger := log.New(io.Discard, "", 0)
 
 	// Insert test user
 	username := "testuser"
@@ -43,7 +47,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 	// Setup app
 	app := fiber.New()
-	handler := NewAuthHandler(database)
+	handler := NewAuthHandler(database, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
 	tests.SetAdminSetupFlag(database, true)
@@ -59,6 +63,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	return &TestContext{
 		App:   app,
 		DB:    database,
+		Log: voidLogger,
 		Token: token,
 		TempDir: tempDir,
 	}
@@ -108,14 +113,9 @@ func loginAndGetToken(t *testing.T, app *fiber.App, username, password string) s
 
 // Create temp dir for testing
 func setupTestEnv(t *testing.T) string {
-	base := "./test_storage"
-	if err := os.MkdirAll(base, os.ModePerm); err != nil {
+	tempDir := "./test_storage"
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
 		t.Fatal("Failed to create base dir:", err)
-	}
-
-	tempDir, err := os.MkdirTemp(base, "upload*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
 	}
 
 	// Set env variables

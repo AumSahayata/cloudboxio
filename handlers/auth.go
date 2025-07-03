@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"os"
 	"strings"
 
@@ -16,10 +17,16 @@ import (
 
 type AuthHandler struct {
     DB *sql.DB
+	LogINFO *log.Logger 
+	LogError *log.Logger 
 }
 
-func NewAuthHandler(database *sql.DB) *AuthHandler {
-    return &AuthHandler{DB: database}
+func NewAuthHandler(db *sql.DB, infoLogger, errorLogger *log.Logger) *AuthHandler {
+    return &AuthHandler{
+		DB:       db,
+		LogINFO:  infoLogger,
+		LogError: errorLogger,
+	}
 }
 
 func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
@@ -61,7 +68,7 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error":"Failed to register user"})
 	}
 
-	internal.Info.Printf("ADMIN user [%s] created new user (%s)", userID, req.Username)
+	h.LogINFO.Printf("ADMIN user [%s] created new user (%s)", userID, req.Username)
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message":"User created"})
 }
 
@@ -234,6 +241,6 @@ func (h *AuthHandler) DeleteUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not delete user"})
 	}
 
-	internal.Info.Printf("ADMIN user [%s] deleted user (%s)", userID, username)
+	h.LogINFO.Printf("ADMIN user [%s] deleted user (%s)", userID, username)
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{"message": "User deleted successfully"})
 }

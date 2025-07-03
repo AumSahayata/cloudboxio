@@ -321,6 +321,8 @@ func TestListSharedFiles(t *testing.T) {
 	}
 }
 
+// Does not leave the test_storage (temp dir for testing) hence throws an error
+
 // func TestDownloadFile(t *testing.T) {
 // 	ctx := SetupTestContext(t)
 // 	tests.SetAdminSetupFlag(ctx.DB, true)

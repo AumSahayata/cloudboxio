@@ -79,7 +79,7 @@ func main() {
 		internal.Info.Printf("USE_DEFAULT_UI=false — UI not served")
 	}
 
-	authHandler := handlers.NewAuthHandler(database)
+	authHandler := handlers.NewAuthHandler(database, internal.Info, internal.Error)
 	fileHandler := handlers.NewFileHandler(database)
 
 	api := app.Group("/api")
