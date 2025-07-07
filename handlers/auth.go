@@ -34,7 +34,7 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 	isAdmin := c.Locals("is_admin").(bool)
 
 	if !isAdmin{
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Only admin can create users"})
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error":"Only admin can create users"})
 	}
 	var req models.SignUp
 
@@ -193,7 +193,7 @@ func (h *AuthHandler) GetUsers(c *fiber.Ctx) error {
 	isAdmin := c.Locals("is_admin").(bool)
 
 	if !isAdmin {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Only admin can access users list"})
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error":"Only admin can access users list"})
 	}
 
 	rows, err := h.DB.Query(`SELECT username, is_admin FROM users`)
@@ -224,7 +224,7 @@ func (h *AuthHandler) DeleteUser(c *fiber.Ctx) error {
 	isAdmin := c.Locals("is_admin").(bool)
 
 	if !isAdmin {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error":"Only admin can delete users"})
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error":"Only admin can delete users"})
 	}
 
 	username := c.Params("username")
