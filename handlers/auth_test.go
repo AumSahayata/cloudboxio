@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/AumSahayata/cloudboxio/internal"
+	"github.com/AumSahayata/cloudboxio/models"
 	"github.com/AumSahayata/cloudboxio/tests"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -158,10 +159,10 @@ func TestSignupAsAdmin(t *testing.T) {
 	
 	app.Post("/signup", handler.SignUp)
 
-	signupData := map[string]any{
-		"username": "newuser",
-		"password": "strongpass123",
-		"is_admin": false,
+	signupData := models.SignUp{
+		Username: "newuser",
+		Password: "strongpass123",
+		IsAdmin: false,
 	}
 
 	jsonbody, err := json.Marshal(signupData)
@@ -248,5 +249,111 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 
 	if protectedResp.StatusCode != fiber.StatusOK {
 		t.Errorf("Expected status 200, got %d", protectedResp.StatusCode)
+	}
+}
+
+func TestResetPassword(t *testing.T) {
+	ctx := SetupTestContext(t)
+
+	tests.SetAdminSetupFlag(ctx.DB, true)
+	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
+
+	ctx.App.Use(func(c *fiber.Ctx) error {
+		c.Locals("is_admin", true)
+		c.Locals("user_id", "test-id")
+		return c.Next()
+	})
+
+	ctx.App.Use(internal.JWTProtected())
+	ctx.App.Put("/reset-password", handler.ResetPassword)
+	
+	payload := models.ResetPassword{
+		CurrentPassword: "securepass",
+		NewPassword: "testPass123",
+	}
+
+	jsonbody, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("Failed to marshal signup data: %v", err)
+	}
+	
+	req := httptest.NewRequest("PUT", "/reset-password", bytes.NewReader(jsonbody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+ctx.Token)
+
+	resp, err := ctx.App.Test(req, -1)
+	if err != nil {
+		t.Fatalf("HTTP request failed: %v", err)
+	}
+
+	if resp.StatusCode != fiber.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+}
+
+func TestGetUsers(t *testing.T) {
+	ctx := SetupTestContext(t)
+
+	tests.SetAdminSetupFlag(ctx.DB, true)
+	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
+
+	ctx.App.Use(internal.JWTProtected())
+	ctx.App.Get("/users", handler.GetUsers)
+
+	req := httptest.NewRequest("GET", "/users", nil)
+	req.Header.Set("Authorization", "Bearer "+ctx.Token)
+
+	resp, err := ctx.App.Test(req, -1)
+	if err != nil {
+		t.Fatalf("HTTP request failed: %v", err)
+	}
+
+	if resp.StatusCode != fiber.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read response body: %v", err)
+	}
+
+	var result []models.UserInfo
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	rows, err := ctx.DB.Query(`SELECT username, is_admin FROM users`)
+	if err != nil {
+		t.Fatalf("failed to search db: %v", err)
+	}
+
+	usersList := []models.UserInfo{}
+	
+	for rows.Next() {
+		
+		var username string
+		var isADM bool
+		if err := rows.Scan(&username, &isADM); err != nil {
+			continue
+		}
+		usersList = append(usersList, models.UserInfo{
+			Username: username,
+			IsAdmin: isADM,
+		})
+	}
+
+	if len(usersList) != len(result) {
+		t.Fatalf("Expected %d users, got %d", len(usersList), len(result))
+	}
+
+	for i := range usersList {
+		expected := usersList[i]
+		actual := result[i]
+		if expected.Username != actual.Username || expected.IsAdmin != actual.IsAdmin {
+			t.Errorf("Mismatch at index %d: expected %+v, got %+v", i, expected, actual)
+		}
 	}
 }
