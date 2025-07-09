@@ -27,9 +27,12 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 
 > CloudBoxIO includes a clean, responsive UI for file management out of the box.
 
-<p align="Left">
-  <img src="https://i.postimg.cc/ZRLWYKMC/index.png" alt="Landing page" width="500">
-  <img src="https://i.postimg.cc/VNnSTF99/dashboard.png" alt="Dashboard page" width="500">
+<p align="center">
+  <img src="https://i.postimg.cc/ZRLWYKMC/index.png" alt="Landing page" width="600">
+</p>
+
+<p align="center">
+  <img src="https://i.postimg.cc/VNnSTF99/dashboard.png" alt="Dashboard page" width="600">
 </p>
 
 <p align="center">
