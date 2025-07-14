@@ -60,7 +60,9 @@ func main() {
 	app.Use(internal.CORSMiddleware())
 
 	// Rate limiter
-	app.Use(internal.RateLimiterMiddleware())
+	if os.Getenv("ENABLE_RATE_LIMIT") == "true"{
+		app.Use(internal.RateLimiterMiddleware())
+	}
 
 	// Use default UI for the app
 	if os.Getenv("USE_DEFAULT_UI") == "true" {

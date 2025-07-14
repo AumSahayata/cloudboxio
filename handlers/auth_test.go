@@ -34,11 +34,11 @@ func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
 
 	resp, err := app.Test(req, -1)
 	if err != nil {
-		t.Fatalf("HTTP request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != fiber.StatusUnauthorized {
-		t.Errorf("Expected status 401, got %d", resp.StatusCode)
+		t.Errorf("expected status %d, got %d", fiber.StatusUnauthorized, resp.StatusCode)
 	}
 }
 
@@ -54,13 +54,13 @@ func TestLoginWrongPassword(t *testing.T) {
 	correctPassword := "correctpass"
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(correctPassword), 14)
 	if err != nil {
-		t.Fatalf("Failed to hash password: %v", err)
+		t.Fatalf("failed to hash password: %v", err)
 	}
 
 	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, 
 		"test-id", username, string(hashedPwd), false)
 	if err != nil {
-		t.Fatalf("Failed to insert test user: %v", err)
+		t.Fatalf("failed to insert test user: %v", err)
 	}
 
 	// Setup app + handler
@@ -77,11 +77,11 @@ func TestLoginWrongPassword(t *testing.T) {
 
 	resp, err := app.Test(req, -1)
 	if err != nil {
-		t.Fatalf("HTTP request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != fiber.StatusUnauthorized {
-		t.Errorf("Expected status 401, got %d", resp.StatusCode)
+		t.Errorf("expected status %d, got %d", fiber.StatusUnauthorized, resp.StatusCode)
 	}
 }
 
@@ -97,13 +97,13 @@ func TestLoginSuccess(t *testing.T) {
 	correctPassword := "correctpass"
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(correctPassword), 14)
 	if err != nil {
-		t.Fatalf("Failed to hash password: %v", err)
+		t.Fatalf("failed to hash password: %v", err)
 	}
 
 	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, 
 		"test-id", username, string(hashedPwd), false)
 	if err != nil {
-		t.Fatalf("Failed to insert test user: %v", err)
+		t.Fatalf("failed to insert test user: %v", err)
 	}
 
 	// Setup app + handler
@@ -119,11 +119,11 @@ func TestLoginSuccess(t *testing.T) {
 
 	resp, err := app.Test(req, -1)
 	if err != nil {
-		t.Fatalf("HTTP request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
+		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 
 	// Read response body
@@ -132,11 +132,11 @@ func TestLoginSuccess(t *testing.T) {
 
 	var data map[string]string
 	if err := json.Unmarshal(body, &data); err != nil {
-		t.Fatalf("Failed to parse response JSON: %v", err)
+		t.Fatalf("failed to parse response JSON: %v", err)
 	}
 
 	if data["token"] == "" {
-		t.Errorf("Expected token in response, got empty string")
+		t.Errorf("expected token in response, got empty string")
 	}
 }
 
@@ -167,7 +167,7 @@ func TestSignupAsAdmin(t *testing.T) {
 
 	jsonbody, err := json.Marshal(signupData)
 	if err != nil {
-		t.Fatalf("Failed to marshal signup data: %v", err)
+		t.Fatalf("failed to marshal signup data: %v", err)
 	}
 
 	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jsonbody))
@@ -175,20 +175,20 @@ func TestSignupAsAdmin(t *testing.T) {
 
 	resp, err := app.Test(req, -1)
 	if err != nil {
-		t.Fatalf("HTTP request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != fiber.StatusCreated {
-		t.Errorf("Expected status 201, got %d", resp.StatusCode)
+		t.Errorf("expected status %d, got %d", fiber.StatusCreated, resp.StatusCode)
 	}
 
 	var exists bool
 	err = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`, signupData.Username).Scan(&exists)
 	if err != nil {
-		t.Fatalf("Failed to check if user was created: %v", err)
+		t.Fatalf("failed to check if user was created: %v", err)
 	}
 	if !exists {
-		t.Errorf("Expected user %q to be created, but was not found in the database", signupData.Username)
+		t.Errorf("expected user %q to be created, but was not found in the database", signupData.Username)
 	}
 
 }
@@ -220,7 +220,7 @@ func TestSignupAsNonAdmin(t *testing.T) {
 
 	jsonbody, err := json.Marshal(signupData)
 	if err != nil {
-		t.Fatal("Failed to marshal signup data:", err)
+		t.Fatal("failed to marshal signup data:", err)
 	}
 
 	req := httptest.NewRequest("POST", "/signup", bytes.NewReader(jsonbody))
@@ -228,11 +228,11 @@ func TestSignupAsNonAdmin(t *testing.T) {
 
 	resp, err := app.Test(req, -1)
 	if err != nil {
-		t.Fatalf("HTTP request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != fiber.StatusForbidden {
-		t.Errorf("Expected status 403, got %d", resp.StatusCode)
+		t.Errorf("expected status %d, got %d", fiber.StatusForbidden, resp.StatusCode)
 	}
 }
 
@@ -252,13 +252,13 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 
 	protectedResp, err := ctx.App.Test(protectedReq, -1)
 	if err != nil {
-		t.Fatal("Protected route request failed:", err)
+		t.Fatal("request failed:", err)
 	}
 	
 	defer protectedResp.Body.Close()
 
 	if protectedResp.StatusCode != fiber.StatusOK {
-		t.Errorf("Expected status 200, got %d", protectedResp.StatusCode)
+		t.Errorf("expected status %d, got %d", fiber.StatusOK, protectedResp.StatusCode)
 	}
 }
 
@@ -278,7 +278,7 @@ func TestResetPassword(t *testing.T) {
 
 	jsonbody, err := json.Marshal(payload)
 	if err != nil {
-		t.Fatalf("Failed to marshal signup data: %v", err)
+		t.Fatalf("failed to marshal signup data: %v", err)
 	}
 	
 	req := httptest.NewRequest("PUT", "/reset-password", bytes.NewReader(jsonbody))
@@ -287,11 +287,11 @@ func TestResetPassword(t *testing.T) {
 
 	resp, err := ctx.App.Test(req, -1)
 	if err != nil {
-		t.Fatalf("HTTP request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != fiber.StatusOK {
-		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+		t.Errorf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 	defer resp.Body.Close()
 }
@@ -310,11 +310,11 @@ func TestGetUsers(t *testing.T) {
 
 	resp, err := ctx.App.Test(req, -1)
 	if err != nil {
-		t.Fatalf("HTTP request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
 
 	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
+		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
@@ -350,14 +350,89 @@ func TestGetUsers(t *testing.T) {
 	}
 
 	if len(usersList) != len(result) {
-		t.Fatalf("Expected %d users, got %d", len(usersList), len(result))
+		t.Fatalf("expected %d users, got %d", len(usersList), len(result))
 	}
 
 	for i := range usersList {
 		expected := usersList[i]
 		actual := result[i]
 		if expected.Username != actual.Username || expected.IsAdmin != actual.IsAdmin {
-			t.Errorf("Mismatch at index %d: expected %+v, got %+v", i, expected, actual)
+			t.Errorf("mismatch at index %d: expected %+v, got %+v", i, expected, actual)
 		}
+	}
+}
+
+func TestDeleteUsers(t *testing.T) {
+	ctx := SetupTestContext(t)
+
+	tests.SetAdminSetupFlag(ctx.DB, true)
+	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
+
+	ctx.App.Use(internal.JWTProtected())
+	ctx.App.Delete("/users/:username", handler.DeleteUser)
+
+	req := httptest.NewRequest("DELETE", "/users/testuser", nil)
+	req.Header.Set("Authorization", "Bearer "+ctx.Token)
+
+	resp, err := ctx.App.Test(req, -1)
+	if err != nil {
+		t.Fatal("request failed:", err)
+	}
+
+	if resp.StatusCode != fiber.StatusNoContent {
+		t.Fatalf("expected status %d, got %d", fiber.StatusNoContent, resp.StatusCode)
+	}
+	
+	var exists bool
+	err = ctx.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`, "testuser").Scan(&exists)
+	if err != nil {
+		t.Fatalf("failed to check if user was deleted: %v", err)
+	}
+	if exists {
+		t.Errorf("expected testuser to be deleted, but was found in the database")
+	}
+}
+
+func TestGetUserInfo(t *testing.T) {
+	ctx := SetupTestContext(t)
+	
+	tests.SetAdminSetupFlag(ctx.DB, true)
+	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
+
+	ctx.App.Use(internal.JWTProtected())
+	ctx.App.Get("/user-info", handler.GetUserInfo)
+
+	req := httptest.NewRequest("GET", "/user-info", nil)
+	req.Header.Set("Authorization", "Bearer "+ctx.Token)
+
+	resp, err := ctx.App.Test(req, -1)
+	if err != nil {
+		t.Fatal("request failed:", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read response body: %v", err)
+	}
+	
+	var dataExpected, dataReceived models.UserInfo
+
+	if err := json.Unmarshal(body, &dataReceived); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	row := ctx.DB.QueryRow(`SELECT username, is_admin FROM users WHERE id = ?`, "test-id")
+
+	if err := row.Scan(&dataExpected.Username, &dataExpected.IsAdmin); err != nil {
+		t.Fatalf("failed to search db: %v", err)
+	}
+
+	if dataExpected != dataReceived {
+		t.Errorf("expected: %+v, got: %+v", dataExpected, dataReceived)
 	}
 }
