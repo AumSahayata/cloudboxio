@@ -181,6 +181,16 @@ func TestSignupAsAdmin(t *testing.T) {
 	if resp.StatusCode != fiber.StatusCreated {
 		t.Errorf("Expected status 201, got %d", resp.StatusCode)
 	}
+
+	var exists bool
+	err = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`, signupData.Username).Scan(&exists)
+	if err != nil {
+		t.Fatalf("Failed to check if user was created: %v", err)
+	}
+	if !exists {
+		t.Errorf("Expected user %q to be created, but was not found in the database", signupData.Username)
+	}
+
 }
 
 func TestSignupAsNonAdmin(t *testing.T) {
@@ -193,7 +203,7 @@ func TestSignupAsNonAdmin(t *testing.T) {
 	voidLogger := log.New(io.Discard, "", 0)
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	
-	// Middleware to inject is_admin = true
+	// Middleware to inject is_admin = false (simulate non-admin user)
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("is_admin", false)
 		c.Locals("user_id", "test-id")
@@ -221,8 +231,8 @@ func TestSignupAsNonAdmin(t *testing.T) {
 		t.Fatalf("HTTP request failed: %v", err)
 	}
 
-	if resp.StatusCode != fiber.StatusUnauthorized {
-		t.Errorf("Expected status 401, got %d", resp.StatusCode)
+	if resp.StatusCode != fiber.StatusForbidden {
+		t.Errorf("Expected status 403, got %d", resp.StatusCode)
 	}
 }
 
@@ -257,12 +267,6 @@ func TestResetPassword(t *testing.T) {
 
 	tests.SetAdminSetupFlag(ctx.DB, true)
 	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
-
-	ctx.App.Use(func(c *fiber.Ctx) error {
-		c.Locals("is_admin", true)
-		c.Locals("user_id", "test-id")
-		return c.Next()
-	})
 
 	ctx.App.Use(internal.JWTProtected())
 	ctx.App.Put("/reset-password", handler.ResetPassword)
@@ -310,7 +314,7 @@ func TestGetUsers(t *testing.T) {
 	}
 
 	if resp.StatusCode != fiber.StatusOK {
-		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
