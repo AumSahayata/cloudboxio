@@ -1,61 +1,93 @@
 # 📦 CloudBoxIO
 
-CloudBoxIO is a lightweight, self-hosted file storage and sharing service built using Go and Fiber. It supports file uploads, secure JWT-based authentication, shared/public files, and more — all backed by SQLite for simplicity and portability.
+> A lightweight, self-hosted file storage and sharing server built with Go and Fiber.
+
+CloudBoxIO allows users to securely upload, share, and manage files with JWT-based authentication and an optional minimal UI. Built for simplicity and portability, it runs as a single binary and stores data using SQLite.
 
 ---
 
 ## 🚀 Features
 
-- 🔐 User authentication (Signup/Login) using JWT
-- 📁 Upload, list, and download personal files
-- 🌐 Shared file support (public listing)
-- 🗑️ File deletion
-- 🧠 Filename conflict resolution (e.g., `file(1).txt`)
-- 📊 SQLite-based metadata and user storage
-- 📂 Optional file logging and server logs
-- 🧠 Auto-generated `.env` file with required flags and JWT secret
+- 🔐 JWT-based user authentication and authorization  
+- 📁 Upload, list, and download personal files  
+- 🌐 Public/shared file support  
+- 🗑️ File deletion with name conflict resolution (e.g., `file(1).txt`)  
+- 📊 SQLite for user and file metadata  
+- 🧾 Optional file and server logging  
+- 🎛️ Admin-only user management  
+- 📂 Multi-file uploads  
+- 🛑 Graceful shutdown  
+- 🖥️ Optional built-in UI  
+- 🚧 Rate limiting  
+- 🧪 Unit testing  
 
 ---
 
-## ⚙️ Tech Stack
+## </> UI
 
-- Language: **Go (Golang)**
-- Web Framework: **Fiber**
-- Database: **SQLite**
-- Auth: **JWT**
-- Logging: **Standard Library log package**
-- Environment Handling: **`godotenv`**
+> CloudBoxIO includes a clean, responsive UI for file management out of the box.
 
----
+<p align="center">
+  <img src="https://i.postimg.cc/ZRLWYKMC/index.png" alt="Landing page" width="600">
+</p>
 
-## 🧪 Getting Started
+<p align="center">
+  <img src="https://i.postimg.cc/VNnSTF99/dashboard.png" alt="Dashboard page" width="600">
+</p>
 
-### Prerequisites
-
-- [Go](https://golang.org/doc/install) 1.24+
-- SQLite3 (optional CLI for viewing DB)
-- [Setup guide](https://github.com/AumSahayata/cloudboxio/wiki/Setup-Guide)
----
-
-📄 License
-
-This project is open-source and available under the [MIT License](https://github.com/AumSahayata/cloudboxio/blob/main/LICENSE).
+<p align="center">
+  <img src="https://i.postimg.cc/HxmJC73q/mobile-view.png" alt="Mobile view" width="250">
+</p>
 
 ---
 
-## 🧰 Suggestions or Help?
+## ⚡ Quick Start
 
-Feel free to open an issue or PR. You can also consider enhancements like:
-- 🔄 Docker support
-- 💻 Frontend
-- 🛠️ CI pipelines or GitHub Actions
-- ⏳ Unit & integration tests
-- 📴 Graceful shutdown
+> ✅ Requires [Go](https://golang.org/dl/) 1.24 or higher (Go is only needed if building from source)
 
+```bash
+git clone https://github.com/AumSahayata/cloudboxio.git
+cd cloudboxio
+go mod tidy
+go build .
+./cloudboxio
+```
+
+> 💡 A `.env` file will be generated automatically on first run. You can edit it to change port, file directories, upload size, rate limiting, and more.
+
+---
+
+## 📚 Documentation
+
+See the [Wiki](https://github.com/AumSahayata/cloudboxio/wiki) for full documentation:
+
+- 🛠️ [Setup Guide](https://github.com/AumSahayata/cloudboxio/wiki/Setup-Guide)  
+- ⚙️ [Configuration via `.env`](https://github.com/AumSahayata/cloudboxio/wiki/Configurations)  
+- 🔐 [User API Reference](https://github.com/AumSahayata/cloudboxio/wiki/User-APIs)  
+- 📁 [File API Reference](https://github.com/AumSahayata/cloudboxio/wiki/File-APIs)  
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](https://github.com/AumSahayata/cloudboxio/blob/main/LICENSE)
+
+---
+
+## 💬 Need Help or Want to Contribute?
+- Your feedback, ideas, and contributions are always welcome. Whether it’s fixing a bug, improving the docs, or suggesting a new feature — every bit helps make CloudBoxIO better for everyone.
+- Ask questions or share ideas in [Discussions](https://github.com/AumSahayata/cloudboxio/discussions)  
+- Report bugs via [Issues](https://github.com/AumSahayata/cloudboxio/issues)  
+- Suggestions welcome! You can contribute:
+  - 🔄 Docker support  
+  - 💻 Frontend improvements  
+  - 🛠️ CI pipelines or GitHub Actions  
+  - 🧪 Integration testing  
+  - 🆕 Bring your own idea
 ---
 
 ## 👨‍💻 Author
 
-Built with ❤️ by Aum Sahayata
+Made with ❤️ by [Aum Sahayata](https://github.com/AumSahayata)
 
 ---

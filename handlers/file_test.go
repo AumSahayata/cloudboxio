@@ -37,7 +37,7 @@ func TestUploadFiles(t *testing.T) {
 	}
 	_, err = part.Write([]byte("Hello from test1"))
 	if err != nil {
-		t.Fatal("Failed to write to test file")
+		t.Fatal("failed to write to test file")
 	}
 	
 	part, err = writer.CreateFormFile("files", filenames[1])
@@ -46,7 +46,7 @@ func TestUploadFiles(t *testing.T) {
 	}
 	_, err = part.Write([]byte("Hello from test2"))
 	if err != nil {
-		t.Fatal("Failed to write to test file")
+		t.Fatal("failed to write to test file")
 	}
 	
 	writer.Close()
@@ -58,7 +58,7 @@ func TestUploadFiles(t *testing.T) {
 
 	_, err = ctx.App.Test(uploadReq, -1)
 	if err != nil {
-		t.Fatal("Protected route request failed:", err)
+		t.Fatal("request failed:", err)
 	}
 
 	// Check if files were saved
@@ -72,7 +72,7 @@ func TestUploadFiles(t *testing.T) {
 	// Validate DB records
 	rows, err := ctx.DB.Query("SELECT filename FROM metadata WHERE user_id = ?", "test-id")
 	if err != nil {
-		t.Fatal("Failed to query metadata:", err)
+		t.Fatal("failed to query metadata:", err)
 	}
 	defer rows.Close()
 	found := make(map[string]bool)
@@ -80,14 +80,14 @@ func TestUploadFiles(t *testing.T) {
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			t.Fatalf("Failed to scan metadata: %v", err)
+			t.Fatalf("failed to scan metadata: %v", err)
 		}
 		found[name] = true
 	}
 
 	for _, filename := range filenames {
 		if !found[filename] {
-			t.Fatalf("Expected DB entry for file %s", filename)
+			t.Fatalf("expected DB entry for file %s", filename)
 		}
 	}
 }
@@ -112,7 +112,7 @@ func TestSharedUploadFiles(t *testing.T) {
 	}
 	_, err = part.Write([]byte("Hello from test3"))
 	if err != nil {
-		t.Fatal("Failed to write to test file")
+		t.Fatal("failed to write to test file")
 	}
 	
 	part, err = writer.CreateFormFile("files", filenames[1])
@@ -121,7 +121,7 @@ func TestSharedUploadFiles(t *testing.T) {
 	}
 	_, err = part.Write([]byte("Hello from test4"))
 	if err != nil {
-		t.Fatal("Failed to write to test file")
+		t.Fatal("failed to write to test file")
 	}
 	
 	writer.Close()
@@ -133,7 +133,7 @@ func TestSharedUploadFiles(t *testing.T) {
 
 	_, err = ctx.App.Test(uploadReq, -1)
 	if err != nil {
-		t.Fatal("Protected route request failed:", err)
+		t.Fatal("request failed:", err)
 	}
 
 	// Check if files were saved
@@ -147,7 +147,7 @@ func TestSharedUploadFiles(t *testing.T) {
 	// Validate DB records
 	rows, err := ctx.DB.Query("SELECT filename FROM metadata WHERE user_id = ? AND is_shared = ?", "test-id", true)
 	if err != nil {
-		t.Fatal("Failed to query metadata:", err)
+		t.Fatal("failed to query metadata:", err)
 	}
 	defer rows.Close()
 	found := make(map[string]bool)
@@ -155,14 +155,14 @@ func TestSharedUploadFiles(t *testing.T) {
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			t.Fatalf("Failed to scan metadata: %v", err)
+			t.Fatalf("failed to scan metadata: %v", err)
 		}
 		found[name] = true
 	}
 
 	for _, filename := range filenames {
 		if !found[filename] {
-			t.Fatalf("Expected DB entry for file %s", filename)
+			t.Fatalf("expected DB entry for file %s", filename)
 		}
 	}
 }
@@ -211,7 +211,7 @@ func TestListMyFiles(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+		t.Fatalf("expected status %d, got %d",fiber.StatusOK, resp.StatusCode)
 	}
 
 	// Parse response
@@ -288,7 +288,7 @@ func TestListSharedFiles(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 
 	// Parse response
@@ -336,12 +336,12 @@ func TestListSharedFiles(t *testing.T) {
 // 	fileContent := []byte("This is a test file.")
 // 	err := os.WriteFile(tempFilepath, fileContent, os.ModePerm)
 // 	if err != nil {
-// 		t.Fatal("Failed to write temp file:", err)
+// 		t.Fatal("failed to write temp file:", err)
 // 	}
 
 // 	_, err = ctx.DB.Exec(`INSERT INTO metadata (id, user_id, filename, size, path, is_shared, uploaded_at) VALUES (?,?,?,?,?,?,?)`, 1, "test-id", "test.txt", 1000, tempFilepath, false, "today")
 // 	if err != nil {
-// 		t.Fatal("Failed to insert temp file record in DB:", err)
+// 		t.Fatal("failed to insert temp file record in DB:", err)
 // 	}
 
 // 	// Test download
@@ -350,13 +350,13 @@ func TestListSharedFiles(t *testing.T) {
 
 // 	resp, err := ctx.App.Test(dwnReq, -1)
 // 	if err != nil {
-// 		t.Fatal("Protected route request failed:", err)
+// 		t.Fatal("request failed:", err)
 // 	}
 // 	defer resp.Body.Close()
 
 // 	// Check status code
 // 	if resp.StatusCode != fiber.StatusOK {
-// 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+// 		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 // 	}
 
 // 	// Check header
@@ -389,26 +389,25 @@ func TestDeleteFile(t *testing.T) {
 	fileContent := []byte("This is a test file.")
 	err := os.WriteFile(tempFilepath, fileContent, os.ModePerm)
 	if err != nil {
-		t.Fatal("Failed to write temp file:", err)
+		t.Fatal("failed to write temp file:", err)
 	}
 
 	_, err = ctx.DB.Exec(`INSERT INTO metadata (id, user_id, filename, size, path, is_shared, uploaded_at) VALUES (?,?,?,?,?,?,?)`, 1, "test-id", "test.txt", 1000, tempFilepath, false, "today")
 	if err != nil {
-		t.Fatal("Failed to insert temp file record in DB:", err)
+		t.Fatal("failed to insert temp file record in DB:", err)
 	}
-
 
 	req := httptest.NewRequest("DELETE", "/file/1", nil)
 	req.Header.Set("Authorization", "Bearer "+ctx.Token)
 
 	resp, err := ctx.App.Test(req, -1)
 	if err != nil {
-		t.Fatal("Protected route request failed:", err)
+		t.Fatal("request failed:", err)
 	}
 	defer resp.Body.Close()
 
 	// Check status code
 	if resp.StatusCode != fiber.StatusNoContent {
-		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+		t.Fatalf("expected status %d, got %d", fiber.StatusNoContent, resp.StatusCode)
 	}
 }
