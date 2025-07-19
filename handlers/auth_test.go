@@ -329,7 +329,7 @@ func TestGetUsers(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	rows, err := ctx.DB.Query(`SELECT username, is_admin FROM users`)
+	rows, err := ctx.DB.Query(`SELECT id, username, is_admin FROM users`)
 	if err != nil {
 		t.Fatalf("failed to search db: %v", err)
 	}
@@ -338,12 +338,14 @@ func TestGetUsers(t *testing.T) {
 	
 	for rows.Next() {
 		
+		var id string
 		var username string
 		var isADM bool
-		if err := rows.Scan(&username, &isADM); err != nil {
+		if err := rows.Scan(&id, &username, &isADM); err != nil {
 			continue
 		}
 		usersList = append(usersList, models.UserInfo{
+			ID: id, 
 			Username: username,
 			IsAdmin: isADM,
 		})
@@ -432,9 +434,9 @@ func TestGetUserInfo(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	row := ctx.DB.QueryRow(`SELECT username, is_admin FROM users WHERE id = ?`, "test-id")
+	row := ctx.DB.QueryRow(`SELECT id, username, is_admin FROM users WHERE id = ?`, "test-id")
 
-	if err := row.Scan(&dataExpected.Username, &dataExpected.IsAdmin); err != nil {
+	if err := row.Scan(&dataExpected.ID, &dataExpected.Username, &dataExpected.IsAdmin); err != nil {
 		t.Fatalf("failed to search db: %v", err)
 	}
 

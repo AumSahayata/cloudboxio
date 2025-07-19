@@ -482,9 +482,16 @@ function renderUsersPanel(users) {
         userItem.className = 'list-group-item d-flex justify-content-between align-items-center';
         userItem.innerHTML = `
             <span><strong>${user.username}</strong> ${user.is_admin ? '<span class="badge bg-warning">Admin</span>' : ''}</span>
-            <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.username}', this)"><i class="bi bi-trash"></i> Delete</button>
+            <button class="btn btn-sm btn-danger delete-user-btn" data-user-id="${user.id}"><i class="bi bi-trash"></i> Delete</button>
         `;
         usersList.appendChild(userItem);
+    });
+    // Attach event listeners for delete buttons
+    usersList.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            deleteUser(userId, this);
+        });
     });
 }
 
@@ -511,13 +518,13 @@ async function fetchAllUsers() {
     }
 }
 
-// Delete user (admin only)
-async function deleteUser(username, btn) {
+// Update deleteUser to use id in the API call
+async function deleteUser(userId, btn) {
     if (!confirm('Are you sure you want to delete this user?')) return;
     btn.disabled = true;
     try {
         showLoading('Deleting user...');
-        const response = await fetch(`${API_URL}/users/${encodeURIComponent(username)}`, {
+        const response = await fetch(`${API_URL}/users/${encodeURIComponent(userId)}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
