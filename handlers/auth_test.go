@@ -49,7 +49,7 @@ func TestLoginWrongPassword(t *testing.T) {
 	tests.SetAdminSetupFlag(db, true)
 	voidLogger := log.New(io.Discard, "", 0)
 
-	// Create test user with known credentials
+	// Create test user with known credentials.
 	username := "testuser"
 	correctPassword := "correctpass"
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(correctPassword), 14)
@@ -63,7 +63,6 @@ func TestLoginWrongPassword(t *testing.T) {
 		t.Fatalf("failed to insert test user: %v", err)
 	}
 
-	// Setup app + handler
 	app := fiber.New()
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
@@ -92,7 +91,7 @@ func TestLoginSuccess(t *testing.T) {
 	tests.SetAdminSetupFlag(db, true)
 	voidLogger := log.New(io.Discard, "", 0)
 
-	// Create test user with known credentials
+	// Create test user with known credentials.
 	username := "testuser"
 	correctPassword := "correctpass"
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(correctPassword), 14)
@@ -106,7 +105,6 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("failed to insert test user: %v", err)
 	}
 
-	// Setup app + handler
 	app := fiber.New()
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
@@ -126,7 +124,6 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 
-	// Read response body
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
@@ -246,7 +243,7 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 	ctx.App.Use(internal.JWTProtected())
 	ctx.App.Get("/user-info", handler.GetUserInfo)
 
-	// --- Access protected route with token ---
+	// Access protected route with token
 	protectedReq := httptest.NewRequest("GET", "/user-info", nil)
 	protectedReq.Header.Set("Authorization", "Bearer "+ctx.Token)
 

@@ -38,17 +38,17 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 	}
 	var req models.SignUp
 
-	// Put the data from the request body into req
+	// Put the data from the request body into req.
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid Input"})
 	}
 
-	// Validate required fields
+	// Validate required fields.
 	if req.Username == "" || req.Password == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Username and password are required"})
 	}
 
-	// Generate the hash for the password
+	// Generate the hash for the password.
 	hashedpwd, err := bcrypt.GenerateFromPassword([]byte(req.Password), 14)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Password hashing failed"})
@@ -61,7 +61,7 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 
 	_, err = stmt.Exec(uuid.NewString(), req.Username, string(hashedpwd), req.IsAdmin)
 	if err != nil {
-		// Check for SQLite-specific error
+		// Check for SQLite-specific error to check if the username already exists.
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Username already exists"})
 		}

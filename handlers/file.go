@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -38,14 +39,14 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 	// Create shared folder if not exists
 	dirPath := filepath.Join(fileDir, sharedDir)
 	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to create shared dir: %w", err)
 	}
-
+	
 	if !isShared {
 		// Create user's folder if not exists
 		dirPath = filepath.Join(fileDir, userID)
 		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
-			return err
+			return fmt.Errorf("failed to create user dir: %w", err)
 		}
 	}
 
@@ -59,7 +60,7 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 		// Save file to user-specific directory
 		savePath := filepath.Join(dirPath, filename)
 		if err := c.SaveFile(file, savePath); err != nil {
-			return err
+			return fmt.Errorf("failed to save the file: %w", err)
 		}
 
 		// Insert metadata into SQLite DB
@@ -69,16 +70,12 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to save metadata"})
 		}
 
-		internal.FileOps.Printf("User [%s] uploaded %s file: %s",
-			userID,
-			func() string {
-				if isShared {
-					return "shared"
-				} else {
-					return "personal"
-				}
-			}(), filename,
-		)
+		fileType := "personal"
+		if isShared {
+			fileType = "shared"
+		}
+
+		internal.FileOps.Printf("User [%s] uploaded %s file: %s", userID, fileType, filename,)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
@@ -233,16 +230,12 @@ func (h *FileHandler) DeleteFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete metadata"})
 	}
 
-	internal.FileOps.Printf("User [%s] deleted %s file: %s",
-		userID,
-		func() string {
-			if shared {
-				return "shared"
-			} else {
-				return "personal"
-			}
-		}(),
-		filename)
+	fileType := "personal"
+	if shared {
+		fileType = "shared"
+	}
+
+	internal.FileOps.Printf("User [%s] deleted %s file: %s", userID, fileType, filename)
 
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{"message": "File deleted successfully"})
 }

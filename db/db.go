@@ -3,6 +3,7 @@ package db
 import (
 	"crypto/rand"
 	"database/sql"
+	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -12,7 +13,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// Initialize the database
+// InitDb initializes the database.
 func InitDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite", "file:data.db?_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL")
 	if err != nil {
@@ -26,7 +27,7 @@ func InitDB() (*sql.DB, error) {
 		log.Fatalln("Database unreachable:", err)
 	}
 
-	// Create metadata table
+	// createTable is a prepared statement to create metadata table.
 	createTable := `CREATE TABLE IF NOT EXISTS metadata (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id TEXT,
@@ -40,7 +41,7 @@ func InitDB() (*sql.DB, error) {
 		log.Println("Failed to create metadata table:", err)
 	}
 
-	// Create users table
+	// createTable is a prepared statement to create users table.
 	createTable = `CREATE TABLE IF NOT EXISTS users (
 		id TEXT PRIMARY KEY,
 		username TEXT UNIQUE NOT NULL,
@@ -52,7 +53,7 @@ func InitDB() (*sql.DB, error) {
 		log.Println("Failed to create users table:", err)
 	}
 
-	// Create settings table
+	// createTable is a prepared statement to create settings table.
 	createTable = `CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -61,7 +62,7 @@ func InitDB() (*sql.DB, error) {
 		log.Println("Failed to create settings table:", err)
 	}
 
-	// Add initial settings in the settings table
+	// Insert a default 'admin_setup_done' flag if it doesn't exist yet.
 	stmt := `INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_setup_done', 'false')`
 	if _, err := db.Exec(stmt); err != nil {
 		log.Println("Failed to setup initial settings:", err)
@@ -72,6 +73,7 @@ func InitDB() (*sql.DB, error) {
 	return db, nil
 }
 
+// CloseDB is used to manually close database during graceful shutdown.
 func CloseDB(db *sql.DB) {
 	if db != nil {
 		err := db.Close()
@@ -83,18 +85,19 @@ func CloseDB(db *sql.DB) {
 	}
 }
 
+// createAdmin creates a default admin user.
 func createAdmin(db *sql.DB) error {
 	// Generate random password
 	randomPassword, err := generateRandomPassword(8)
 	if err != nil {
 		log.Fatalln("Failed to generate password:", err)
-		return err
+		return fmt.Errorf("failed to generate password: %w", err)
 	}
 	log.Println("Admin password (one-time):", randomPassword)
 
-	// Create temp_admin_credentials.txt file
+	// Create temp_admin_credentials.txt file with the generated credentials.
 	if err := os.WriteFile("temp_admin_credentials.txt", []byte("CloudBoxIO Temporary Admin Credentials (One-Time Use Only)\n\nUsername: admin\nPassword: "+randomPassword+"\n\nThese credentials are for first-time access only.\nOnce the admin password is reset, this file is deleted automatically."), 0600); err != nil {
-		log.Println("Failed to write temp admin file:", err)
+		log.Println("failed to write temp admin file:", err)
 	}
 
 	log.Println("Admin credentials saved to temp_admin_credentials.txt")
@@ -102,19 +105,20 @@ func createAdmin(db *sql.DB) error {
 	hashedpwd, err := bcrypt.GenerateFromPassword([]byte(randomPassword), 14)
 	if err != nil {
 		log.Fatalln("Failed to hash password:", err)
-		return err
+		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Create admin user
+	// Insert a user in users table.
 	stmt := `INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`
 	if _, err := db.Exec(stmt, uuid.NewString(), "admin", hashedpwd, true); err != nil {
 		log.Fatalln("Failed to create admin user:", err)
-		return err
+		return fmt.Errorf("Failed to create admin user: %w", err)
 	}
 
 	return nil
 }
 
+// checkAndCreateAdmin creates an admin user if it does not exists on first run.
 func checkAndCreateAdmin(db *sql.DB) {
 	var count int
 	// Gets the count of admin users
@@ -130,13 +134,13 @@ func checkAndCreateAdmin(db *sql.DB) {
 	}
 }
 
-// Characters to create password from
+// CharapasswordChars is a list of characters to create password from.
 const passwordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$"
 
 func generateRandomPassword(length int) (string, error) {
 	password := make([]byte, length)
 	for i := range password {
-		// Randomly select characters for password
+		// Randomly select characters for password.
 		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(passwordChars))))
 		if err != nil {
 			return "", err
