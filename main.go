@@ -39,13 +39,13 @@ func main() {
 	maxUploadSize, err := strconv.Atoi(os.Getenv("MAX_UPLOAD_SIZE_MB"))
 	if err != nil || maxUploadSize <= 0 {
 		maxUploadSize = 100
-	} 
+	}
 
 	// Initiate server
 	app := fiber.New(fiber.Config{
-		AppName: "CloudBoxIO",
+		AppName:          "CloudBoxIO",
 		DisableKeepalive: true,
-		BodyLimit:  maxUploadSize << 20,
+		BodyLimit:        maxUploadSize << 20,
 	})
 
 	// Initiate database
@@ -55,12 +55,12 @@ func main() {
 	}
 
 	defer db.CloseDB(database)
-	
+
 	// Apply CORS globally
 	app.Use(internal.CORSMiddleware())
 
 	// Rate limiter
-	if os.Getenv("ENABLE_RATE_LIMIT") == "true"{
+	if os.Getenv("ENABLE_RATE_LIMIT") == "true" {
 		app.Use(internal.RateLimiterMiddleware())
 	}
 
@@ -72,8 +72,8 @@ func main() {
 			internal.Error.Fatalln("Error creating file system for frontend:", err)
 		}
 		app.Use("/", filesystem.New(filesystem.Config{
-			Root: http.FS(subFS),
-			Index: "index.html",
+			Root:   http.FS(subFS),
+			Index:  "index.html",
 			Browse: false,
 		}))
 		internal.Info.Println("Serving embedded UI at /")
@@ -87,16 +87,16 @@ func main() {
 	api := app.Group("/api")
 	//Public routes
 	api.Post("/login", authHandler.Login)
-	
+
 	//Protected routes
 	api.Use(internal.JWTProtected())
-	
+
 	// Files endpoint
 	api.Post("/upload:shared?", fileHandler.UploadFile)
 	api.Get("/files:keyword?:shared?", fileHandler.ListFiles)
 	api.Get("/file/:fileid", fileHandler.DownloadFile)
 	api.Delete("/file/:fileid", fileHandler.DeleteFile)
-	
+
 	// User endpoints
 	api.Post("/signup", authHandler.SignUp)
 	api.Put("/reset-password", authHandler.ResetPassword)
@@ -105,12 +105,12 @@ func main() {
 	api.Delete("/users/:id", authHandler.DeleteUser)
 
 	// Create and hold own TCP listener (not using fiber's listener)
-    addr := ":" + os.Getenv("PORT")
-    ln, err := net.Listen("tcp", addr)
-    if err != nil {
-        internal.Error.Fatalf("Failed to listen on %s: %v", addr, err)
-    }
-    internal.Info.Printf("Listening on %s", addr)
+	addr := ":" + os.Getenv("PORT")
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		internal.Error.Fatalf("Failed to listen on %s: %v", addr, err)
+	}
+	internal.Info.Printf("Listening on %s", addr)
 
 	go func() {
 		if err := app.Listener(ln); err != nil {
@@ -122,9 +122,9 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c // Block until signal received
-	
+
 	internal.Info.Println("Shutting down server...")
-	
+
 	// Gracefully shutdown the server
 	if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
 		internal.Error.Printf("Shutdown error: %v", err)

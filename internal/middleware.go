@@ -13,12 +13,12 @@ import (
 )
 
 func JWTProtected() fiber.Handler {
-	return func (c *fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
 		// Get JWT
 		auth := c.Get("Authorization")
 
 		if auth == "" {
-			return c.Status(498).JSON(fiber.Map{"error":"Missing token"})
+			return c.Status(498).JSON(fiber.Map{"error": "Missing token"})
 		}
 
 		// Split and get the token
@@ -48,9 +48,8 @@ func JWTProtected() fiber.Handler {
 	}
 }
 
-
 func CORSMiddleware() fiber.Handler {
-	// Allowed address 
+	// Allowed address
 	var allowedOrigins string = "http://127.0.0.1:" + os.Getenv("PORT")
 
 	return cors.New(cors.Config{
@@ -60,24 +59,23 @@ func CORSMiddleware() fiber.Handler {
 	})
 }
 
-
 func RateLimiterMiddleware() fiber.Handler {
 	// Rate limiter configs
 	max_limit, err := strconv.Atoi(os.Getenv("RATE_LIMIT_MAX"))
 	if err != nil {
 		max_limit = 20
 	}
-	
+
 	rate_limit_exp, err := strconv.Atoi(os.Getenv("RATE_LIMIT_EXPIRATION_SECOND"))
 	if err != nil {
 		rate_limit_exp = 30
 	}
 
 	return limiter.New(limiter.Config{
-		Max: max_limit,
-		Expiration:  time.Duration(rate_limit_exp)* time.Second,
+		Max:        max_limit,
+		Expiration: time.Duration(rate_limit_exp) * time.Second,
 		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error":"Rate limit exceeded. Try again later."})
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": "Rate limit exceeded. Try again later."})
 		},
 	})
 }

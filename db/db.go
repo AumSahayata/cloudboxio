@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	_ "modernc.org/sqlite"
 	"golang.org/x/crypto/bcrypt"
+	_ "modernc.org/sqlite"
 )
 
 // Initialize the database
@@ -26,7 +26,7 @@ func InitDB() (*sql.DB, error) {
 		log.Fatalln("Database unreachable:", err)
 	}
 
-    // Create metadata table
+	// Create metadata table
 	createTable := `CREATE TABLE IF NOT EXISTS metadata (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id TEXT,
@@ -40,7 +40,7 @@ func InitDB() (*sql.DB, error) {
 		log.Println("Failed to create metadata table:", err)
 	}
 
-	// Create users table 
+	// Create users table
 	createTable = `CREATE TABLE IF NOT EXISTS users (
 		id TEXT PRIMARY KEY,
 		username TEXT UNIQUE NOT NULL,
@@ -51,7 +51,7 @@ func InitDB() (*sql.DB, error) {
 	if _, err = db.Exec(createTable); err != nil {
 		log.Println("Failed to create users table:", err)
 	}
-	
+
 	// Create settings table
 	createTable = `CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
@@ -92,7 +92,7 @@ func createAdmin(db *sql.DB) error {
 	}
 	log.Println("Admin password (one-time):", randomPassword)
 
-	// Create temp_admin_credentials.txt file 
+	// Create temp_admin_credentials.txt file
 	if err := os.WriteFile("temp_admin_credentials.txt", []byte("CloudBoxIO Temporary Admin Credentials (One-Time Use Only)\n\nUsername: admin\nPassword: "+randomPassword+"\n\nThese credentials are for first-time access only.\nOnce the admin password is reset, this file is deleted automatically."), 0600); err != nil {
 		log.Println("Failed to write temp admin file:", err)
 	}
@@ -116,32 +116,32 @@ func createAdmin(db *sql.DB) error {
 }
 
 func checkAndCreateAdmin(db *sql.DB) {
-    var count int
+	var count int
 	// Gets the count of admin users
-    err := db.QueryRow(`SELECT COUNT(*) FROM users WHERE is_admin = 1`).Scan(&count)
-    if err != nil {
-        log.Println("Failed to check admin user:", err)
-        return
-    }
-    if count == 0 {
-        if err := createAdmin(db); err != nil {
+	err := db.QueryRow(`SELECT COUNT(*) FROM users WHERE is_admin = 1`).Scan(&count)
+	if err != nil {
+		log.Println("Failed to check admin user:", err)
+		return
+	}
+	if count == 0 {
+		if err := createAdmin(db); err != nil {
 			log.Fatalln("admin creation failed: ", err)
 		}
-    }
+	}
 }
 
 // Characters to create password from
 const passwordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$"
 
 func generateRandomPassword(length int) (string, error) {
-    password := make([]byte, length)
-    for i := range password {
-		// Randomly select characters for password 
-        index, err := rand.Int(rand.Reader, big.NewInt(int64(len(passwordChars))))
-        if err != nil {
-            return "", err
-        }
-        password[i] = passwordChars[index.Int64()]
-    }
-    return string(password), nil
+	password := make([]byte, length)
+	for i := range password {
+		// Randomly select characters for password
+		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(passwordChars))))
+		if err != nil {
+			return "", err
+		}
+		password[i] = passwordChars[index.Int64()]
+	}
+	return string(password), nil
 }

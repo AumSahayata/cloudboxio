@@ -39,7 +39,7 @@ func TestUploadFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to write to test file")
 	}
-	
+
 	part, err = writer.CreateFormFile("files", filenames[1])
 	if err != nil {
 		t.Fatal(err)
@@ -48,9 +48,9 @@ func TestUploadFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to write to test file")
 	}
-	
+
 	writer.Close()
-	
+
 	// Create request
 	uploadReq := httptest.NewRequest("POST", "/upload?shared=false", &body)
 	uploadReq.Header.Set("Content-Type", writer.FormDataContentType())
@@ -76,7 +76,7 @@ func TestUploadFiles(t *testing.T) {
 	}
 	defer rows.Close()
 	found := make(map[string]bool)
-	
+
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
@@ -114,7 +114,7 @@ func TestSharedUploadFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to write to test file")
 	}
-	
+
 	part, err = writer.CreateFormFile("files", filenames[1])
 	if err != nil {
 		t.Fatal(err)
@@ -123,9 +123,9 @@ func TestSharedUploadFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to write to test file")
 	}
-	
+
 	writer.Close()
-	
+
 	// Create request
 	uploadReq := httptest.NewRequest("POST", "/upload?shared=true", &body)
 	uploadReq.Header.Set("Content-Type", writer.FormDataContentType())
@@ -151,7 +151,7 @@ func TestSharedUploadFiles(t *testing.T) {
 	}
 	defer rows.Close()
 	found := make(map[string]bool)
-	
+
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
@@ -176,7 +176,7 @@ func TestListMyFiles(t *testing.T) {
 		id         int
 		filename   string
 		size       int
-		path	   string
+		path       string
 		uploadedAt string
 		isShared   bool
 	}{
@@ -211,7 +211,7 @@ func TestListMyFiles(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("expected status %d, got %d",fiber.StatusOK, resp.StatusCode)
+		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 
 	// Parse response
@@ -227,7 +227,7 @@ func TestListMyFiles(t *testing.T) {
 
 	expectedFiles := []string{"file1.txt", "file2.txt"}
 	receivedFiles := make(map[string]bool)
-	
+
 	// Check expected files
 	for _, file := range result {
 		receivedFiles[file.Filename] = true
@@ -253,12 +253,12 @@ func TestListSharedFiles(t *testing.T) {
 		id         int
 		filename   string
 		size       int
-		path	   string
+		path       string
 		uploadedAt string
 		isShared   bool
 	}{
-		{1, "file1.txt", 123, "/path/my-files/file1.txt", "2025-06-01 10:00:00", false},  // should be excluded
-		{2, "file2.txt", 456, "/path/my-files/file2.txt", "2025-06-02 11:00:00", false},  // should be excluded
+		{1, "file1.txt", 123, "/path/my-files/file1.txt", "2025-06-01 10:00:00", false}, // should be excluded
+		{2, "file2.txt", 456, "/path/my-files/file2.txt", "2025-06-02 11:00:00", false}, // should be excluded
 		{3, "shared.txt", 789, "/path/shared/shared.txt", "2025-06-03 12:00:00", true},
 	}
 
@@ -304,7 +304,7 @@ func TestListSharedFiles(t *testing.T) {
 
 	expectedFiles := []string{"shared.txt"}
 	receivedFiles := make(map[string]bool)
-	
+
 	// Check expected files
 	for _, file := range result {
 		receivedFiles[file.Filename] = true

@@ -16,7 +16,7 @@ import (
 )
 
 func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, false)
@@ -26,7 +26,7 @@ func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
-	payload := map[string]string{"username":"admin", "password": "admin"}
+	payload := map[string]string{"username": "admin", "password": "admin"}
 	jsonbody, _ := json.Marshal(payload)
 
 	req := httptest.NewRequest("POST", "/login", bytes.NewReader(jsonbody))
@@ -43,7 +43,7 @@ func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
 }
 
 func TestLoginWrongPassword(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
@@ -57,7 +57,7 @@ func TestLoginWrongPassword(t *testing.T) {
 		t.Fatalf("failed to hash password: %v", err)
 	}
 
-	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, 
+	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`,
 		"test-id", username, string(hashedPwd), false)
 	if err != nil {
 		t.Fatalf("failed to insert test user: %v", err)
@@ -69,7 +69,7 @@ func TestLoginWrongPassword(t *testing.T) {
 	app.Post("/login", handler.Login)
 
 	// Incorrect password
-	payload := map[string]string{"username":username, "password": "wrongpass",}
+	payload := map[string]string{"username": username, "password": "wrongpass"}
 	jsonbody, _ := json.Marshal(payload)
 
 	req := httptest.NewRequest("POST", "/login", bytes.NewReader(jsonbody))
@@ -86,7 +86,7 @@ func TestLoginWrongPassword(t *testing.T) {
 }
 
 func TestLoginSuccess(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
@@ -100,7 +100,7 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("failed to hash password: %v", err)
 	}
 
-	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, 
+	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`,
 		"test-id", username, string(hashedPwd), false)
 	if err != nil {
 		t.Fatalf("failed to insert test user: %v", err)
@@ -111,7 +111,7 @@ func TestLoginSuccess(t *testing.T) {
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
-	payload := map[string]string{"username":username, "password": correctPassword,}
+	payload := map[string]string{"username": username, "password": correctPassword}
 	jsonbody, _ := json.Marshal(payload)
 
 	req := httptest.NewRequest("POST", "/login", bytes.NewReader(jsonbody))
@@ -141,28 +141,28 @@ func TestLoginSuccess(t *testing.T) {
 }
 
 func TestSignupAsAdmin(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
 	voidLogger := log.New(io.Discard, "", 0)
-	
+
 	app := fiber.New()
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
-	
+
 	// Middleware to inject is_admin = true and user_id
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("is_admin", true)
 		c.Locals("user_id", "test-id")
 		return c.Next()
 	})
-	
+
 	app.Post("/signup", handler.SignUp)
 
 	signupData := models.SignUp{
 		Username: "newuser",
 		Password: "strongpass123",
-		IsAdmin: false,
+		IsAdmin:  false,
 	}
 
 	jsonbody, err := json.Marshal(signupData)
@@ -194,22 +194,22 @@ func TestSignupAsAdmin(t *testing.T) {
 }
 
 func TestSignupAsNonAdmin(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
-	
+
 	app := fiber.New()
 	voidLogger := log.New(io.Discard, "", 0)
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
-	
+
 	// Middleware to inject is_admin = false (simulate non-admin user)
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("is_admin", false)
 		c.Locals("user_id", "test-id")
 		return c.Next()
 	})
-	
+
 	app.Post("/signup", handler.SignUp)
 
 	signupData := map[string]any{
@@ -254,7 +254,7 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 	if err != nil {
 		t.Fatal("request failed:", err)
 	}
-	
+
 	defer protectedResp.Body.Close()
 
 	if protectedResp.StatusCode != fiber.StatusOK {
@@ -270,17 +270,17 @@ func TestResetPassword(t *testing.T) {
 
 	ctx.App.Use(internal.JWTProtected())
 	ctx.App.Put("/reset-password", handler.ResetPassword)
-	
+
 	payload := models.ResetPassword{
 		CurrentPassword: "securepass",
-		NewPassword: "testPass123",
+		NewPassword:     "testPass123",
 	}
 
 	jsonbody, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatalf("failed to marshal signup data: %v", err)
 	}
-	
+
 	req := httptest.NewRequest("PUT", "/reset-password", bytes.NewReader(jsonbody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+ctx.Token)
@@ -335,9 +335,9 @@ func TestGetUsers(t *testing.T) {
 	}
 
 	usersList := []models.UserInfo{}
-	
+
 	for rows.Next() {
-		
+
 		var id string
 		var username string
 		var isADM bool
@@ -345,9 +345,9 @@ func TestGetUsers(t *testing.T) {
 			continue
 		}
 		usersList = append(usersList, models.UserInfo{
-			ID: id, 
+			ID:       id,
 			Username: username,
-			IsAdmin: isADM,
+			IsAdmin:  isADM,
 		})
 	}
 
@@ -390,7 +390,7 @@ func TestDeleteUsers(t *testing.T) {
 	if resp.StatusCode != fiber.StatusNoContent {
 		t.Fatalf("expected status %d, got %d", fiber.StatusNoContent, resp.StatusCode)
 	}
-	
+
 	var exists bool
 	err = ctx.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`, "delete-id").Scan(&exists)
 	if err != nil {
@@ -403,7 +403,7 @@ func TestDeleteUsers(t *testing.T) {
 
 func TestGetUserInfo(t *testing.T) {
 	ctx := SetupTestContext(t)
-	
+
 	tests.SetAdminSetupFlag(ctx.DB, true)
 	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
 
@@ -427,7 +427,7 @@ func TestGetUserInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read response body: %v", err)
 	}
-	
+
 	var dataExpected, dataReceived models.UserInfo
 
 	if err := json.Unmarshal(body, &dataReceived); err != nil {

@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	Info  *log.Logger
-	Error *log.Logger
-	FileOps  *log.Logger
+	Info    *log.Logger
+	Error   *log.Logger
+	FileOps *log.Logger
 )
 
 func InitLogger() {
@@ -18,7 +18,7 @@ func InitLogger() {
 
 	_ = os.MkdirAll("logs", os.ModePerm)
 	logfile, err := os.OpenFile("logs/server.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	
+
 	if err != nil {
 		log.Fatalf("error opening server log file: %v", err)
 	}
@@ -28,7 +28,7 @@ func InitLogger() {
 	if logToConsole {
 		output = io.MultiWriter(os.Stdout, logfile)
 	}
-	
+
 	Info = log.New(output, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	Error = log.New(output, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 

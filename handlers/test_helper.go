@@ -28,7 +28,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	t.Helper()
 
 	// Setup DB
-	database := tests.SetupTestDB()
+	database := tests.SetupTestDB(t)
 
 	// void logger
 	voidLogger := log.New(io.Discard, "", 0)
@@ -61,10 +61,10 @@ func SetupTestContext(t *testing.T) *TestContext {
 	})
 
 	return &TestContext{
-		App:   app,
-		DB:    database,
-		Log: voidLogger,
-		Token: token,
+		App:     app,
+		DB:      database,
+		Log:     voidLogger,
+		Token:   token,
 		TempDir: tempDir,
 	}
 }
@@ -121,9 +121,9 @@ func setupTestEnv(t *testing.T) string {
 	// Set env variables
 	os.Setenv("FILES_DIR", tempDir)
 	os.Setenv("SHARED_DIR", "shared")
-	
-    // Initialize FileOps logger to avoid nil panic
-    internal.FileOps = log.New(io.Discard, "", 0)
+
+	// Initialize FileOps logger to avoid nil panic
+	internal.FileOps = log.New(io.Discard, "", 0)
 
 	return tempDir
 }

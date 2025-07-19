@@ -2,6 +2,7 @@ package internal
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -56,7 +57,7 @@ func CleanParam(param string) (string, error) {
 
 	// Prevent path traversal (e.g., filename = "../../passwd")
 	if strings.Contains(cleanedParam, "..") || filepath.IsAbs(cleanedParam) {
-		return "", err
+		return "", errors.New("invalid parameter: potential path traversal")
 	}
 
 	return cleanedParam, nil
