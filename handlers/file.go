@@ -22,8 +22,7 @@ func NewFileHandler(database *sql.DB) *FileHandler{
 
 func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
-	shared := c.Query("shared", "false")
-	isShared := shared == "true"
+	isShared := c.QueryBool("shared", false)
 
 	fileDir := os.Getenv("FILES_DIR")
 	sharedDir := os.Getenv("SHARED_DIR")
@@ -83,19 +82,34 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 
 func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
-	shared := c.Query("shared", "false")
-	isShared := shared == "true"
-
+	isShared := c.QueryBool("shared", false)
+	keyword := c.Query("keyword")
+	
 	var (
 		stmt *sql.Stmt
 		rows *sql.Rows
 		err error
 	)
 
-	if isShared {
-		stmt, err = h.DB.Prepare(`SELECT md.id, md.filename, md.size, md.uploaded_at, u.username FROM metadata AS md JOIN users AS u ON md.user_id = u.id WHERE md.is_shared = TRUE`)
+	keyword, err = internal.CleanParam(keyword)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error":"Keyword provided is not proper"})
+	}
+
+	keyword = "%"+keyword+"%"
+
+	if keyword == ""{
+		if isShared {
+			stmt, err = h.DB.Prepare(`SELECT md.id, md.filename, md.size, md.uploaded_at, u.username FROM metadata AS md JOIN users AS u ON md.user_id = u.id WHERE md.is_shared = TRUE`)
+		} else {
+			stmt, err = h.DB.Prepare(`SELECT id, filename, size, uploaded_at, "Me" FROM metadata WHERE user_id = ? AND is_shared = FALSE`)
+		}
 	} else {
-		stmt, err = h.DB.Prepare(`SELECT id, filename, size, uploaded_at, "Me" FROM metadata WHERE user_id = ? AND is_shared = FALSE`)
+		if isShared {
+			stmt, err = h.DB.Prepare(`SELECT md.id, md.filename, md.size, md.uploaded_at, u.username FROM metadata AS md JOIN users AS u ON md.user_id = u.id WHERE md.is_shared = TRUE AND md.filename LIKE ?`)
+		} else {
+			stmt, err = h.DB.Prepare(`SELECT id, filename, size, uploaded_at, "Me" FROM metadata WHERE user_id = ? AND is_shared = FALSE AND filename LIKE ?`)
+		}
 	}
 
 	if err != nil {
@@ -104,10 +118,18 @@ func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 	defer stmt.Close()
 
 	// Query the database for the metadata
-	if isShared {
-		rows, err = stmt.Query()
-	}else {
-		rows, err = stmt.Query(userID)
+	if keyword == "" {
+		if isShared {
+			rows, err = stmt.Query()
+		}else {
+			rows, err = stmt.Query(userID)
+		}
+	} else {
+		if isShared {
+			rows, err = stmt.Query(keyword)
+		}else {
+			rows, err = stmt.Query(userID, keyword)
+		}
 	}
 
 	if err != nil {

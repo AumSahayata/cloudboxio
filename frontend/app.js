@@ -1,5 +1,5 @@
 // API Configuration
-const API_URL = '/api';
+const API_URL = 'http://localhost:3000/api';
 
 // Helper function to truncate text
 function truncateText(text, maxLength = 35) {
@@ -739,6 +739,60 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Create user error:', error);
                 alert(error.message || 'Error creating user');
+                hideLoading();
+            }
+        });
+    }
+
+    // Handle file search
+    const fileSearchForm = document.getElementById('fileSearchForm');
+    const fileSearchInput = document.getElementById('fileSearchInput');
+    if (fileSearchForm && fileSearchInput) {
+        fileSearchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const keyword = fileSearchInput.value.trim();
+            if (!keyword) {
+                // If search is empty, reload all files
+                await loadFiles();
+                return;
+            }
+            showLoading('Searching files...');
+            try {
+                // Search my files
+                const myFilesResponse = await fetch(`${API_URL}/files?keyword=${encodeURIComponent(keyword)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
+                    },
+                });
+                handleApiResponse(myFilesResponse);
+                const myFilesData = await myFilesResponse.json();
+                if (!myFilesResponse.ok) {
+                    throw new Error(myFilesData.error || 'Failed to search my files');
+                }
+                const myFilesList = document.getElementById('myFilesList');
+                if (myFilesList) {
+                    displayFiles(myFilesData, myFilesList, 'My Files');
+                }
+
+                // Search shared files
+                const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true&keyword=${encodeURIComponent(keyword)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
+                    },
+                });
+                handleApiResponse(sharedFilesResponse);
+                const sharedFilesData = await sharedFilesResponse.json();
+                if (!sharedFilesResponse.ok) {
+                    throw new Error(sharedFilesData.error || 'Failed to search shared files');
+                }
+                const sharedFilesList = document.getElementById('sharedFilesList');
+                if (sharedFilesList) {
+                    displayFiles(sharedFilesData, sharedFilesList, 'Public Files');
+                }
+            } catch (error) {
+                console.error('Error searching files:', error);
+                alert(error.message || 'Error searching files');
+            } finally {
                 hideLoading();
             }
         });

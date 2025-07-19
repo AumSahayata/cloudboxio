@@ -7,6 +7,7 @@ type User struct {
 }
 
 type UserInfo struct {
+	ID string `json:"id"`
 	Username string `json:"username"`
 	IsAdmin bool `json:"is_admin"`
 }

@@ -86,3 +86,19 @@ func ChangeSetting(key, newValue string, db *sql.DB) error {
 
 	return nil
 }
+
+// Get username
+func GetUsernameByID(id string, db *sql.DB) (string, error) {
+	var username string
+
+	row := db.QueryRow(`SELECT username FROM users WHERE id = ?`, id)
+
+	if err := row.Scan(&username); err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("user not found")
+		}
+		return "", err
+	}
+
+	return username, nil
+}

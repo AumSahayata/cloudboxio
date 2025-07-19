@@ -93,7 +93,7 @@ func main() {
 	
 	// Files endpoint
 	api.Post("/upload:shared?", fileHandler.UploadFile)
-	api.Get("/files:shared?", fileHandler.ListFiles)
+	api.Get("/files:keyword?:shared?", fileHandler.ListFiles)
 	api.Get("/file/:fileid", fileHandler.DownloadFile)
 	api.Delete("/file/:fileid", fileHandler.DeleteFile)
 	
@@ -102,7 +102,7 @@ func main() {
 	api.Put("/reset-password", authHandler.ResetPassword)
 	api.Get("/user-info", authHandler.GetUserInfo)
 	api.Get("/users", authHandler.GetUsers)
-	api.Delete("/users/:username", authHandler.DeleteUser)
+	api.Delete("/users/:id", authHandler.DeleteUser)
 
 	// Create and hold own TCP listener (not using fiber's listener)
     addr := ":" + os.Getenv("PORT")
