@@ -369,9 +369,15 @@ func TestDeleteUsers(t *testing.T) {
 	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
 
 	ctx.App.Use(internal.JWTProtected())
-	ctx.App.Delete("/users/:username", handler.DeleteUser)
+	ctx.App.Delete("/users/:id", handler.DeleteUser)
 
-	req := httptest.NewRequest("DELETE", "/users/testuser", nil)
+	// Create a test user
+	_, err := ctx.DB.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, "delete-id", "deleteUser", "superSecurePass", false)
+	if err != nil {
+		t.Fatalf("Failed to insert user for testing:, %v", err)
+	}
+
+	req := httptest.NewRequest("DELETE", "/users/delete-id", nil)
 	req.Header.Set("Authorization", "Bearer "+ctx.Token)
 
 	resp, err := ctx.App.Test(req, -1)
@@ -384,12 +390,12 @@ func TestDeleteUsers(t *testing.T) {
 	}
 	
 	var exists bool
-	err = ctx.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`, "testuser").Scan(&exists)
+	err = ctx.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`, "delete-id").Scan(&exists)
 	if err != nil {
 		t.Fatalf("failed to check if user was deleted: %v", err)
 	}
 	if exists {
-		t.Errorf("expected testuser to be deleted, but was found in the database")
+		t.Errorf("expected deleteUser to be deleted, but was found in the database")
 	}
 }
 
