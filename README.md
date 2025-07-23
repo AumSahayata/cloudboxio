@@ -8,18 +8,21 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 
 ## 🚀 Features
 
-- 🔐 JWT-based user authentication and authorization  
-- 📁 Upload, list, and download personal files  
-- 🌐 Public/shared file support  
-- 🗑️ File deletion with name conflict resolution (e.g., `file(1).txt`)  
-- 📊 SQLite for user and file metadata  
-- 🧾 Optional file and server logging  
-- 🎛️ Admin-only user management  
-- 📂 Multi-file uploads  
-- 🛑 Graceful shutdown  
-- 🖥️ Optional built-in UI  
-- 🚧 Rate limiting  
-- 🧪 Unit testing  
+- 🔐 User authentication and authorization using JWT
+- 📁 Upload, list, and download personal files
+- 🌐 Shared file support (public listing)
+- 🗑️ File deletion
+- 🧠 Filename conflict resolution (e.g., file(1).txt)
+- 📊 SQLite-based metadata and user storage
+- 📂 Optional file logging and server logs
+- 🧠 Auto-generated .env file with required flags and JWT secret
+- 🎛️ Admin-only user management
+- 🗂️ Upload multiple files
+- 🛑 Graceful shutdown
+- 📱 Minimal Web UI
+- 🔍 Search through uploaded or shared files by filename using query parameters
+- 🚧 Rate Limiting
+- 🧪 Unit testing
 
 ---
 
