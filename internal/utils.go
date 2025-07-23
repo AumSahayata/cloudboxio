@@ -56,7 +56,7 @@ func CleanParam(param string) (string, error) {
 
 	// Prevent path traversal (e.g., filename = "../../passwd")
 	if strings.Contains(cleanedParam, "..") || filepath.IsAbs(cleanedParam) {
-		return "", err
+		return "", fmt.Errorf("invalid parameter: potential path traversal")
 	}
 
 	return cleanedParam, nil
@@ -81,8 +81,24 @@ func IsAdminSetup(db *sql.DB) bool {
 func ChangeSetting(key, newValue string, db *sql.DB) error {
 	_, err := db.Exec(`UPDATE settings SET value = ? WHERE key = ?`, newValue, key)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to change settings: %w", err)
 	}
 
 	return nil
+}
+
+// Get username
+func GetUsernameByID(id string, db *sql.DB) (string, error) {
+	var username string
+
+	row := db.QueryRow(`SELECT username FROM users WHERE id = ?`, id)
+
+	if err := row.Scan(&username); err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("user not found")
+		}
+		return "", err
+	}
+
+	return username, nil
 }

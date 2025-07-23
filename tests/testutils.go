@@ -3,14 +3,15 @@ package tests
 import (
 	"database/sql"
 	"log"
+	"testing"
 
 	_ "modernc.org/sqlite"
 )
 
-func SetupTestDB() *sql.DB {
+func SetupTestDB(t *testing.T) *sql.DB {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to open in-memory DB: %v", err)
 	}
 
 	_, err = db.Exec(`
@@ -20,7 +21,7 @@ func SetupTestDB() *sql.DB {
 		);
 	`)
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to create settings table: %v", err)
 	}
 
 	_, err = db.Exec(`
@@ -32,7 +33,7 @@ func SetupTestDB() *sql.DB {
 	);
 	`)
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to create users table: %v", err)
 	}
 
 	_, err = db.Exec(`
@@ -47,7 +48,7 @@ func SetupTestDB() *sql.DB {
 		);
 	`)
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to create metadata table: %v", err)
 	}
 
 	return db

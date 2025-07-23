@@ -1,5 +1,5 @@
 // API Configuration
-const API_URL = '/api';
+const API_URL = 'http://localhost:3000/api';
 
 // Helper function to truncate text
 function truncateText(text, maxLength = 35) {
@@ -482,9 +482,16 @@ function renderUsersPanel(users) {
         userItem.className = 'list-group-item d-flex justify-content-between align-items-center';
         userItem.innerHTML = `
             <span><strong>${user.username}</strong> ${user.is_admin ? '<span class="badge bg-warning">Admin</span>' : ''}</span>
-            <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.username}', this)"><i class="bi bi-trash"></i> Delete</button>
+            <button class="btn btn-sm btn-danger delete-user-btn" data-user-id="${user.id}"><i class="bi bi-trash"></i> Delete</button>
         `;
         usersList.appendChild(userItem);
+    });
+    // Attach event listeners for delete buttons
+    usersList.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            deleteUser(userId, this);
+        });
     });
 }
 
@@ -511,13 +518,13 @@ async function fetchAllUsers() {
     }
 }
 
-// Delete user (admin only)
-async function deleteUser(username, btn) {
+// Update deleteUser to use id in the API call
+async function deleteUser(userId, btn) {
     if (!confirm('Are you sure you want to delete this user?')) return;
     btn.disabled = true;
     try {
         showLoading('Deleting user...');
-        const response = await fetch(`${API_URL}/users/${encodeURIComponent(username)}`, {
+        const response = await fetch(`${API_URL}/users/${encodeURIComponent(userId)}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
@@ -739,6 +746,60 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Create user error:', error);
                 alert(error.message || 'Error creating user');
+                hideLoading();
+            }
+        });
+    }
+
+    // Handle file search
+    const fileSearchForm = document.getElementById('fileSearchForm');
+    const fileSearchInput = document.getElementById('fileSearchInput');
+    if (fileSearchForm && fileSearchInput) {
+        fileSearchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const keyword = fileSearchInput.value.trim();
+            if (!keyword) {
+                // If search is empty, reload all files
+                await loadFiles();
+                return;
+            }
+            showLoading('Searching files...');
+            try {
+                // Search my files
+                const myFilesResponse = await fetch(`${API_URL}/files?keyword=${encodeURIComponent(keyword)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
+                    },
+                });
+                handleApiResponse(myFilesResponse);
+                const myFilesData = await myFilesResponse.json();
+                if (!myFilesResponse.ok) {
+                    throw new Error(myFilesData.error || 'Failed to search my files');
+                }
+                const myFilesList = document.getElementById('myFilesList');
+                if (myFilesList) {
+                    displayFiles(myFilesData, myFilesList, 'My Files');
+                }
+
+                // Search shared files
+                const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true&keyword=${encodeURIComponent(keyword)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
+                    },
+                });
+                handleApiResponse(sharedFilesResponse);
+                const sharedFilesData = await sharedFilesResponse.json();
+                if (!sharedFilesResponse.ok) {
+                    throw new Error(sharedFilesData.error || 'Failed to search shared files');
+                }
+                const sharedFilesList = document.getElementById('sharedFilesList');
+                if (sharedFilesList) {
+                    displayFiles(sharedFilesData, sharedFilesList, 'Public Files');
+                }
+            } catch (error) {
+                console.error('Error searching files:', error);
+                alert(error.message || 'Error searching files');
+            } finally {
                 hideLoading();
             }
         });

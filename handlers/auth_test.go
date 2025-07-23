@@ -16,7 +16,7 @@ import (
 )
 
 func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, false)
@@ -26,7 +26,7 @@ func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
-	payload := map[string]string{"username":"admin", "password": "admin"}
+	payload := map[string]string{"username": "admin", "password": "admin"}
 	jsonbody, _ := json.Marshal(payload)
 
 	req := httptest.NewRequest("POST", "/login", bytes.NewReader(jsonbody))
@@ -43,13 +43,13 @@ func TestLoginBlockedBeforeAdminSetup(t *testing.T) {
 }
 
 func TestLoginWrongPassword(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
 	voidLogger := log.New(io.Discard, "", 0)
 
-	// Create test user with known credentials
+	// Create test user with known credentials.
 	username := "testuser"
 	correctPassword := "correctpass"
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(correctPassword), 14)
@@ -57,19 +57,18 @@ func TestLoginWrongPassword(t *testing.T) {
 		t.Fatalf("failed to hash password: %v", err)
 	}
 
-	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, 
+	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`,
 		"test-id", username, string(hashedPwd), false)
 	if err != nil {
 		t.Fatalf("failed to insert test user: %v", err)
 	}
 
-	// Setup app + handler
 	app := fiber.New()
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
 	// Incorrect password
-	payload := map[string]string{"username":username, "password": "wrongpass",}
+	payload := map[string]string{"username": username, "password": "wrongpass"}
 	jsonbody, _ := json.Marshal(payload)
 
 	req := httptest.NewRequest("POST", "/login", bytes.NewReader(jsonbody))
@@ -86,13 +85,13 @@ func TestLoginWrongPassword(t *testing.T) {
 }
 
 func TestLoginSuccess(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
 	voidLogger := log.New(io.Discard, "", 0)
 
-	// Create test user with known credentials
+	// Create test user with known credentials.
 	username := "testuser"
 	correctPassword := "correctpass"
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(correctPassword), 14)
@@ -100,18 +99,17 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("failed to hash password: %v", err)
 	}
 
-	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, 
+	_, err = db.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`,
 		"test-id", username, string(hashedPwd), false)
 	if err != nil {
 		t.Fatalf("failed to insert test user: %v", err)
 	}
 
-	// Setup app + handler
 	app := fiber.New()
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
 	app.Post("/login", handler.Login)
 
-	payload := map[string]string{"username":username, "password": correctPassword,}
+	payload := map[string]string{"username": username, "password": correctPassword}
 	jsonbody, _ := json.Marshal(payload)
 
 	req := httptest.NewRequest("POST", "/login", bytes.NewReader(jsonbody))
@@ -126,7 +124,6 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 
-	// Read response body
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
@@ -141,28 +138,28 @@ func TestLoginSuccess(t *testing.T) {
 }
 
 func TestSignupAsAdmin(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
 	voidLogger := log.New(io.Discard, "", 0)
-	
+
 	app := fiber.New()
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
-	
+
 	// Middleware to inject is_admin = true and user_id
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("is_admin", true)
 		c.Locals("user_id", "test-id")
 		return c.Next()
 	})
-	
+
 	app.Post("/signup", handler.SignUp)
 
 	signupData := models.SignUp{
 		Username: "newuser",
 		Password: "strongpass123",
-		IsAdmin: false,
+		IsAdmin:  false,
 	}
 
 	jsonbody, err := json.Marshal(signupData)
@@ -194,22 +191,22 @@ func TestSignupAsAdmin(t *testing.T) {
 }
 
 func TestSignupAsNonAdmin(t *testing.T) {
-	db := tests.SetupTestDB()
+	db := tests.SetupTestDB(t)
 	defer db.Close()
 
 	tests.SetAdminSetupFlag(db, true)
-	
+
 	app := fiber.New()
 	voidLogger := log.New(io.Discard, "", 0)
 	handler := NewAuthHandler(db, voidLogger, voidLogger)
-	
+
 	// Middleware to inject is_admin = false (simulate non-admin user)
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("is_admin", false)
 		c.Locals("user_id", "test-id")
 		return c.Next()
 	})
-	
+
 	app.Post("/signup", handler.SignUp)
 
 	signupData := map[string]any{
@@ -246,7 +243,7 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 	ctx.App.Use(internal.JWTProtected())
 	ctx.App.Get("/user-info", handler.GetUserInfo)
 
-	// --- Access protected route with token ---
+	// Access protected route with token
 	protectedReq := httptest.NewRequest("GET", "/user-info", nil)
 	protectedReq.Header.Set("Authorization", "Bearer "+ctx.Token)
 
@@ -254,7 +251,7 @@ func TestProtectedRouteWithValidToken(t *testing.T) {
 	if err != nil {
 		t.Fatal("request failed:", err)
 	}
-	
+
 	defer protectedResp.Body.Close()
 
 	if protectedResp.StatusCode != fiber.StatusOK {
@@ -270,17 +267,17 @@ func TestResetPassword(t *testing.T) {
 
 	ctx.App.Use(internal.JWTProtected())
 	ctx.App.Put("/reset-password", handler.ResetPassword)
-	
+
 	payload := models.ResetPassword{
 		CurrentPassword: "securepass",
-		NewPassword: "testPass123",
+		NewPassword:     "testPass123",
 	}
 
 	jsonbody, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatalf("failed to marshal signup data: %v", err)
 	}
-	
+
 	req := httptest.NewRequest("PUT", "/reset-password", bytes.NewReader(jsonbody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+ctx.Token)
@@ -329,23 +326,25 @@ func TestGetUsers(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	rows, err := ctx.DB.Query(`SELECT username, is_admin FROM users`)
+	rows, err := ctx.DB.Query(`SELECT id, username, is_admin FROM users`)
 	if err != nil {
 		t.Fatalf("failed to search db: %v", err)
 	}
 
 	usersList := []models.UserInfo{}
-	
+
 	for rows.Next() {
-		
+
+		var id string
 		var username string
 		var isADM bool
-		if err := rows.Scan(&username, &isADM); err != nil {
+		if err := rows.Scan(&id, &username, &isADM); err != nil {
 			continue
 		}
 		usersList = append(usersList, models.UserInfo{
+			ID:       id,
 			Username: username,
-			IsAdmin: isADM,
+			IsAdmin:  isADM,
 		})
 	}
 
@@ -369,9 +368,15 @@ func TestDeleteUsers(t *testing.T) {
 	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
 
 	ctx.App.Use(internal.JWTProtected())
-	ctx.App.Delete("/users/:username", handler.DeleteUser)
+	ctx.App.Delete("/users/:id", handler.DeleteUser)
 
-	req := httptest.NewRequest("DELETE", "/users/testuser", nil)
+	// Create a test user
+	_, err := ctx.DB.Exec(`INSERT INTO users (id, username, password, is_admin) VALUES (?, ?, ?, ?)`, "delete-id", "deleteUser", "superSecurePass", false)
+	if err != nil {
+		t.Fatalf("Failed to insert user for testing:, %v", err)
+	}
+
+	req := httptest.NewRequest("DELETE", "/users/delete-id", nil)
 	req.Header.Set("Authorization", "Bearer "+ctx.Token)
 
 	resp, err := ctx.App.Test(req, -1)
@@ -382,20 +387,20 @@ func TestDeleteUsers(t *testing.T) {
 	if resp.StatusCode != fiber.StatusNoContent {
 		t.Fatalf("expected status %d, got %d", fiber.StatusNoContent, resp.StatusCode)
 	}
-	
+
 	var exists bool
-	err = ctx.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`, "testuser").Scan(&exists)
+	err = ctx.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`, "delete-id").Scan(&exists)
 	if err != nil {
 		t.Fatalf("failed to check if user was deleted: %v", err)
 	}
 	if exists {
-		t.Errorf("expected testuser to be deleted, but was found in the database")
+		t.Errorf("expected deleteUser to be deleted, but was found in the database")
 	}
 }
 
 func TestGetUserInfo(t *testing.T) {
 	ctx := SetupTestContext(t)
-	
+
 	tests.SetAdminSetupFlag(ctx.DB, true)
 	handler := NewAuthHandler(ctx.DB, ctx.Log, ctx.Log)
 
@@ -419,16 +424,16 @@ func TestGetUserInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read response body: %v", err)
 	}
-	
+
 	var dataExpected, dataReceived models.UserInfo
 
 	if err := json.Unmarshal(body, &dataReceived); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	row := ctx.DB.QueryRow(`SELECT username, is_admin FROM users WHERE id = ?`, "test-id")
+	row := ctx.DB.QueryRow(`SELECT id, username, is_admin FROM users WHERE id = ?`, "test-id")
 
-	if err := row.Scan(&dataExpected.Username, &dataExpected.IsAdmin); err != nil {
+	if err := row.Scan(&dataExpected.ID, &dataExpected.Username, &dataExpected.IsAdmin); err != nil {
 		t.Fatalf("failed to search db: %v", err)
 	}
 

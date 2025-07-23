@@ -19,9 +19,9 @@ func InitJWT() {
 func GenerateToken(userID string, isAdmin bool, expTime int) (string, error) {
 	// Payload for JWT
 	claims := jwt.MapClaims{
-		"user_id": userID,
+		"user_id":  userID,
 		"is_admin": isAdmin,
-		"exp" : time.Now().Add(time.Hour * time.Duration(expTime)).Unix(),
+		"exp":      time.Now().Add(time.Hour * time.Duration(expTime)).Unix(),
 	}
 
 	// Create the token
