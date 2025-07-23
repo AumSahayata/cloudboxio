@@ -41,7 +41,7 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create shared dir: %w", err)
 	}
-	
+
 	if !isShared {
 		// Create user's folder if not exists
 		dirPath = filepath.Join(fileDir, userID)
@@ -75,7 +75,7 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 			fileType = "shared"
 		}
 
-		internal.FileOps.Printf("User [%s] uploaded %s file: %s", userID, fileType, filename,)
+		internal.FileOps.Printf("User [%s] uploaded %s file: %s", userID, fileType, filename)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
