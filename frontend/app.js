@@ -27,7 +27,7 @@ function formatDate(timestamp) {
 // Display files in the list
 function displayFiles(files, container, sectionTitle) {
     if (!container) return;
-    
+
     container.innerHTML = '';
 
     if (!Array.isArray(files) || files.length === 0) {
@@ -48,16 +48,16 @@ function displayFiles(files, container, sectionTitle) {
 function createFileListItem(file) {
     const item = document.createElement('div');
     item.className = 'list-group-item';
-    
+
     const isPublic = file.is_public;
     const fileId = file.id || file.file_id || file.fileId || file.filename;
     const filename = file.filename;
-    
+
     if (!fileId) {
         console.error('File ID not found:', file);
         return item;
     }
-    
+
     item.innerHTML = `
         <div class="d-flex">
             <div class="file-name">
@@ -94,11 +94,11 @@ function createFileListItem(file) {
             </div>
         </div>
     `;
-    
+
     // Initialize tooltips for this item
     const tooltipTriggerList = item.querySelectorAll('[data-bs-toggle="tooltip"]');
     [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-    
+
     return item;
 }
 
@@ -236,13 +236,13 @@ async function loadFiles() {
 function logout() {
     // Clear token
     localStorage.removeItem('token');
-    
+
     // Clear the file lists
     const myFilesList = document.getElementById('myFilesList');
     const sharedFilesList = document.getElementById('sharedFilesList');
     if (myFilesList) myFilesList.innerHTML = '';
     if (sharedFilesList) sharedFilesList.innerHTML = '';
-    
+
     // Reset all forms
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
@@ -258,7 +258,7 @@ function logout() {
             }
         });
     });
-    
+
     // Close any open modals
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
@@ -267,11 +267,11 @@ function logout() {
             modalInstance.hide();
         }
     });
-    
+
     // Clear any error messages or alerts
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => alert.remove());
-    
+
     // Update UI using the new function
     showUnauthenticatedUI();
     showLoginModal();
@@ -325,10 +325,10 @@ async function downloadFile(fileId, filename) {
 
         // Get the blob from the response
         const blob = await response.blob();
-        
+
         // Create a temporary URL for the blob
         const url = window.URL.createObjectURL(blob);
-        
+
         // Create a temporary link element
         const link = document.createElement('a');
         link.href = url;
@@ -336,7 +336,7 @@ async function downloadFile(fileId, filename) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         // Clean up the URL
         window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -432,10 +432,10 @@ function showAuthenticatedUI() {
     // Show main content
     document.getElementById('authSection').style.display = 'none';
     document.getElementById('mainSection').style.display = 'block';
-    
+
     // Fetch and display user details
     fetchUserDetails();
-    
+
     // Load files
     loadFiles();
 }
@@ -488,7 +488,7 @@ function renderUsersPanel(users) {
     });
     // Attach event listeners for delete buttons
     usersList.querySelectorAll('.delete-user-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const userId = this.getAttribute('data-user-id');
             deleteUser(userId, this);
         });
@@ -583,11 +583,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     // Store only the token
                     localStorage.setItem('token', data.token);
-                    
+
                     const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
                     if (modal) modal.hide();
                     loginForm.reset();
-                    
+
                     // Update UI using the new function
                     showAuthenticatedUI();
                     hideLoading();
@@ -786,6 +786,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: {
                         'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
                     },
+                });
+                fileSearchForm.addEventListener('reset', async () => {
+                    await loadFiles(); // reload all files when reset is clicked
                 });
                 handleApiResponse(sharedFilesResponse);
                 const sharedFilesData = await sharedFilesResponse.json();

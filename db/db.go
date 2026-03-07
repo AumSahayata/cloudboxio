@@ -134,7 +134,7 @@ func checkAndCreateAdmin(db *sql.DB) {
 	}
 }
 
-// CharapasswordChars is a list of characters to create password from.
+// passwordChars is a list of characters to create password from.
 const passwordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$"
 
 func generateRandomPassword(length int) (string, error) {
