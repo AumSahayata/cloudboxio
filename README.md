@@ -34,15 +34,19 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 > Switch between the light, dark and glass themes from the header, the choice is remembered in the browser.
 
 <p align="center">
-  <img src="https://i.postimg.cc/ZRLWYKMC/index.png" alt="Landing page" width="600">
+  <img src="https://i.ibb.co/20D510Fk/image.png">
 </p>
 
 <p align="center">
-  <img src="https://i.postimg.cc/VNnSTF99/dashboard.png" alt="Dashboard page" width="600">
+  <img src="https://i.ibb.co/JRpwL71D/image.png">
+</p> 
+
+<p align="center">
+  <img src="https://i.ibb.co/1Y6CDPRC/image.png">
 </p>
 
 <p align="center">
-  <img src="https://i.postimg.cc/HxmJC73q/mobile-view.png" alt="Mobile view" width="250">
+  <img src="https://i.ibb.co/JRShXCBD/image.png">
 </p>
 
 ---
