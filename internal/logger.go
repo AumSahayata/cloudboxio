@@ -16,8 +16,8 @@ func InitLogger() {
 	logFileOps := os.Getenv("LOG_FILE_OPS") == "true"
 	logToConsole := os.Getenv("LOG_TO_CONSOLE") == "true"
 
-	_ = os.MkdirAll("logs", os.ModePerm)
-	logfile, err := os.OpenFile("logs/server.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	_ = os.MkdirAll("logs", 0o750)
+	logfile, err := os.OpenFile("logs/server.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 
 	if err != nil {
 		log.Fatalf("error opening server log file: %v", err)
@@ -33,7 +33,7 @@ func InitLogger() {
 	Error = log.New(output, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 	if logFileOps {
-		fileOpsFile, err := os.OpenFile("logs/fileops.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		fileOpsFile, err := os.OpenFile("logs/fileops.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 		if err != nil {
 			log.Fatalf("error opening file ops log file: %v", err)
 		}
