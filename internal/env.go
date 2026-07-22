@@ -37,6 +37,10 @@ ENABLE_RATE_LIMIT=true
 RATE_LIMIT_MAX=30
 RATE_LIMIT_EXPIRATION_SECOND=30
 MAX_UPLOAD_SIZE_MB=100
+JWT_EXPIRY_HOURS=24
+# Optional TLS (serve HTTPS). Provide paths to a cert and key to enable.
+TLS_CERT_FILE=
+TLS_KEY_FILE=
 `
 
 	_, err = file.WriteString(envContent)

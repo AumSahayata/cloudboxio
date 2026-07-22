@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"embed"
 	"io/fs"
 	"net"
@@ -110,7 +111,23 @@ func main() {
 	if err != nil {
 		internal.Error.Fatalf("Failed to listen on %s: %v", addr, err)
 	}
-	internal.Info.Printf("Listening on %s", addr)
+
+	// Serve over HTTPS if a certificate and key are provided
+	certFile := os.Getenv("TLS_CERT_FILE")
+	keyFile := os.Getenv("TLS_KEY_FILE")
+	if certFile != "" && keyFile != "" {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			internal.Error.Fatalf("Failed to load TLS certificate/key: %v", err)
+		}
+		ln = tls.NewListener(ln, &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		})
+		internal.Info.Printf("TLS enabled, listening on %s (https)", addr)
+	} else {
+		internal.Info.Printf("Listening on %s (http)", addr)
+	}
 
 	go func() {
 		if err := app.Listener(ln); err != nil {
