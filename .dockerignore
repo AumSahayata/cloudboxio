@@ -1,0 +1,22 @@
+# VCS / editor
+.git
+.gitignore
+.vscode
+.idea
+
+# Local runtime state (must never be baked into the image)
+.env
+data.db
+data.db-*
+uploads/
+logs/
+temp_admin_credentials.txt
+
+# Build artifacts
+cloudboxio
+cloudboxio.exe
+/out
+*.test
+
+# Docs / misc
+*.md
