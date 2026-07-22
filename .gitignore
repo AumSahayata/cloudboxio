@@ -13,6 +13,10 @@ uploads
 data.db
 logs
 build
+temp_admin_credentials.txt
+
+# Binary built without an extension (go build -o cloudboxio .)
+/cloudboxio
 
 # Test binary, built with `go test -c`
 *.test
