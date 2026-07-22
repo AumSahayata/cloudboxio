@@ -1,186 +1,170 @@
-// API Configuration
+// ============================================================ CloudBoxIO UI
 const API_URL = '/api';
 
-// Helper function to truncate text
-function truncateText(text, maxLength = 35) {
-    if (!text) return '';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-}
+/* ----------------------------------------------------------------- themes */
+const THEME_KEY = 'cbio-theme';
+const THEMES = ['paper', 'carbon', 'aurora'];
 
-// Helper function to format file size
-function formatFileSize(bytes) {
-    if (!bytes) return '0 Bytes';
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Helper function to format date
-function formatDate(timestamp) {
-    if (!timestamp) return '';
-    return new Date(timestamp).toLocaleString();
-}
-
-// Display files in the list
-function displayFiles(files, container, sectionTitle) {
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    if (!Array.isArray(files) || files.length === 0) {
-        const noFilesElement = document.createElement('div');
-        noFilesElement.className = 'list-group-item text-center text-muted';
-        noFilesElement.textContent = 'No files found';
-        container.appendChild(noFilesElement);
-        return;
-    }
-
-    files.forEach(file => {
-        const fileItem = createFileListItem(file);
-        container.appendChild(fileItem);
+function applyTheme(theme) {
+    if (!THEMES.includes(theme)) theme = 'paper';
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+    document.querySelectorAll('.ts-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.themeValue === theme);
     });
 }
 
-// Create file list item
-function createFileListItem(file) {
-    const item = document.createElement('div');
-    item.className = 'list-group-item';
-
-    const isPublic = file.is_public;
-    const fileId = file.id || file.file_id || file.fileId || file.filename;
-    const filename = file.filename;
-
-    if (!fileId) {
-        console.error('File ID not found:', file);
-        return item;
-    }
-
-    item.innerHTML = `
-        <div class="d-flex">
-            <div class="file-name">
-                <strong data-bs-toggle="tooltip" data-bs-placement="top" title="${filename}">
-                    <span class="desktop-filename">${filename}</span>
-                    <span class="mobile-filename">${truncateText(filename)}</span>
-                </strong>
-                <small class="text-muted d-block">
-                    ${formatFileSize(file.size)} • ${formatDate(file.uploaded_at)}
-                    ${isPublic ? ' • Public' : ''}
-                    ${file.uploaded_by ? ` • Uploaded by: ${file.uploaded_by}` : ''}
-                </small>
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-sm btn-primary" onclick="downloadFile('${fileId}', '${filename.replace(/'/g, "\\'")}')">
-                    <i class="bi bi-download"></i> Download
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteFile('${fileId}')">
-                    <i class="bi bi-trash"></i> Delete
-                </button>
-            </div>
-            <div class="mobile-dropdown">
-                <button class="btn btn-outline-secondary btn-sm w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    Actions
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="downloadFile('${fileId}', '${filename.replace(/'/g, "\\'")}')">
-                        <i class="bi bi-download"></i> Download
-                    </a></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteFile('${fileId}')">
-                        <i class="bi bi-trash"></i> Delete
-                    </a></li>
-                </ul>
-            </div>
-        </div>
-    `;
-
-    // Initialize tooltips for this item
-    const tooltipTriggerList = item.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
-    return item;
+function initTheme() {
+    let saved = 'paper';
+    try { saved = localStorage.getItem(THEME_KEY) || 'paper'; } catch (_) {}
+    applyTheme(saved);
+    document.querySelectorAll('.ts-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyTheme(btn.dataset.themeValue));
+    });
 }
 
-// Loading overlay functions
-function showLoading(message = 'Loading...') {
-    let overlay = document.getElementById('loadingOverlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'loadingOverlay';
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div class="loading-content">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="loading-message mt-2">${message}</div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-    } else {
-        const messageElement = overlay.querySelector('.loading-message');
-        if (messageElement) {
-            messageElement.textContent = message;
-        }
-    }
-    overlay.style.display = 'flex';
+/* --------------------------------------------------------------- helpers */
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+function formatDate(timestamp) {
+    if (!timestamp) return '';
+    const d = new Date(timestamp);
+    if (isNaN(d)) return '';
+    return d.toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+
+function iconForFilename(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const map = {
+        pdf: 'bi-filetype-pdf', doc: 'bi-filetype-doc', docx: 'bi-filetype-docx',
+        xls: 'bi-filetype-xlsx', xlsx: 'bi-filetype-xlsx', csv: 'bi-filetype-csv',
+        ppt: 'bi-filetype-pptx', pptx: 'bi-filetype-pptx', txt: 'bi-filetype-txt',
+        md: 'bi-filetype-md', json: 'bi-filetype-json', xml: 'bi-filetype-xml',
+        html: 'bi-filetype-html', css: 'bi-filetype-css', js: 'bi-filetype-js',
+        py: 'bi-filetype-py', java: 'bi-filetype-java', sh: 'bi-filetype-sh',
+        png: 'bi-filetype-png', jpg: 'bi-filetype-jpg', jpeg: 'bi-filetype-jpg',
+        gif: 'bi-filetype-gif', svg: 'bi-filetype-svg', webp: 'bi-file-image',
+        mp3: 'bi-filetype-mp3', wav: 'bi-filetype-wav', mp4: 'bi-filetype-mp4',
+        mov: 'bi-filetype-mov', zip: 'bi-file-zip', tar: 'bi-file-zip',
+        gz: 'bi-file-zip', rar: 'bi-file-zip', '7z': 'bi-file-zip'
+    };
+    return map[ext] || 'bi-file-earmark';
+}
+
+/* ------------------------------------------------------ loading overlay */
+function showLoading(message = 'Loading…') {
+    const overlay = document.getElementById('loadingOverlay');
+    const msg = document.getElementById('loadingMsg');
+    if (msg) msg.textContent = message;
+    if (overlay) overlay.classList.add('show');
+}
 function hideLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
+    if (overlay) overlay.classList.remove('show');
 }
 
-// Add loading overlay styles
-const style = document.createElement('style');
-style.textContent = `
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    }
-    .loading-content {
-        background-color: white;
-        padding: 2rem;
-        border-radius: 8px;
-        text-align: center;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    .loading-message {
-        color: #666;
-        margin-top: 1rem;
-    }
+/* --------------------------------------------------------- safe rendering */
+// Build a file row entirely with DOM APIs + textContent. User-controlled
+// values (filename, uploaded_by) are NEVER interpolated into HTML, which
+// removes the stored-XSS vector the old innerHTML template had.
+function createFileRow(file) {
+    const fileId = file.file_id || file.id || file.fileId;
+    const filename = file.filename || '';
 
-    /* Filename display styles */
-    .desktop-filename {
-        display: inline;
-    }
-    .mobile-filename {
-        display: none;
-    }
+    const row = document.createElement('div');
+    row.className = 'file-row';
 
-    @media (max-width: 768px) {
-        .desktop-filename {
-            display: none;
-        }
-        .mobile-filename {
-            display: inline;
-        }
-    }
-`;
-document.head.appendChild(style);
+    const icon = document.createElement('i');
+    icon.className = 'bi ' + iconForFilename(filename) + ' file-icon';
+    row.appendChild(icon);
 
-// Helper to get token or redirect to login if missing
+    const main = document.createElement('div');
+    main.className = 'file-main';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'file-name';
+    nameEl.textContent = filename;
+    nameEl.title = filename;
+    main.appendChild(nameEl);
+
+    const meta = document.createElement('div');
+    meta.className = 'file-meta';
+
+    const sizeEl = document.createElement('span');
+    sizeEl.textContent = formatFileSize(file.size);
+    meta.appendChild(sizeEl);
+
+    const dateStr = formatDate(file.uploaded_at);
+    if (dateStr) {
+        meta.appendChild(makeSep());
+        const dateEl = document.createElement('span');
+        dateEl.textContent = dateStr;
+        meta.appendChild(dateEl);
+    }
+    if (file.uploaded_by && file.uploaded_by !== 'Me') {
+        meta.appendChild(makeSep());
+        const byEl = document.createElement('span');
+        byEl.className = 'uploader';
+        byEl.textContent = '@' + file.uploaded_by;
+        meta.appendChild(byEl);
+    }
+    main.appendChild(meta);
+    row.appendChild(main);
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'icon-btn';
+    dlBtn.title = 'Download';
+    dlBtn.innerHTML = '<i class="bi bi-download"></i>';
+    dlBtn.addEventListener('click', () => downloadFile(fileId, filename));
+    actions.appendChild(dlBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn danger';
+    delBtn.title = 'Delete';
+    delBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+    delBtn.addEventListener('click', () => deleteFile(fileId));
+    actions.appendChild(delBtn);
+
+    row.appendChild(actions);
+    return row;
+}
+
+function makeSep() {
+    const s = document.createElement('span');
+    s.className = 'sep';
+    s.textContent = '·';
+    return s;
+}
+
+function displayFiles(files, container, countEl) {
+    if (!container) return;
+    container.textContent = '';
+    const list = Array.isArray(files) ? files : [];
+    if (countEl) countEl.textContent = String(list.length);
+
+    if (list.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-row';
+        empty.textContent = 'No files yet';
+        container.appendChild(empty);
+        return;
+    }
+    list.forEach(f => container.appendChild(createFileRow(f)));
+}
+
+/* ------------------------------------------------------------ auth token */
 function getAuthTokenOrRedirect() {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -191,109 +175,47 @@ function getAuthTokenOrRedirect() {
     return token;
 }
 
-// Global loadFiles function
-async function loadFiles() {
-    showLoading('Loading files...');
-    try {
-        // Load my files
-        const myFilesResponse = await fetch(`${API_URL}/files`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
-        const myFilesData = await myFilesResponse.json();
-        if (!myFilesResponse.ok) {
-            throw new Error(myFilesData.error || 'Failed to fetch my files');
-        }
-        const myFilesList = document.getElementById('myFilesList');
-        if (myFilesList) {
-            displayFiles(myFilesData, myFilesList, 'My Files');
-        }
+function authHeaders(extra) {
+    return Object.assign({ 'Authorization': `Bearer ${getAuthTokenOrRedirect()}` }, extra || {});
+}
 
-        // Load shared files
-        const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
-        const sharedFilesData = await sharedFilesResponse.json();
-        if (!sharedFilesResponse.ok) {
-            throw new Error(sharedFilesData.error || 'Failed to fetch shared files');
-        }
-        const sharedFilesList = document.getElementById('sharedFilesList');
-        if (sharedFilesList) {
-            displayFiles(sharedFilesData, sharedFilesList, 'Public Files');
-        }
+/* --------------------------------------------------------------- files */
+async function loadFiles() {
+    showLoading('Loading files…');
+    try {
+        const myResp = await fetch(`${API_URL}/files`, { headers: authHeaders() });
+        handleApiResponse(myResp);
+        const myData = await myResp.json();
+        if (!myResp.ok) throw new Error(myData.error || 'Failed to fetch files');
+        displayFiles(myData, document.getElementById('myFilesList'),
+                     document.getElementById('myFilesCount'));
+
+        const shResp = await fetch(`${API_URL}/files?shared=true`, { headers: authHeaders() });
+        handleApiResponse(shResp);
+        const shData = await shResp.json();
+        if (!shResp.ok) throw new Error(shData.error || 'Failed to fetch public files');
+        displayFiles(shData, document.getElementById('sharedFilesList'),
+                     document.getElementById('sharedFilesCount'));
     } catch (error) {
         console.error('Error loading files:', error);
-        alert(error.message || 'Error loading files');
     } finally {
         hideLoading();
     }
 }
 
-// Global logout function
-function logout() {
-    // Clear token
-    localStorage.removeItem('token');
-
-    // Clear the file lists
-    const myFilesList = document.getElementById('myFilesList');
-    const sharedFilesList = document.getElementById('sharedFilesList');
-    if (myFilesList) myFilesList.innerHTML = '';
-    if (sharedFilesList) sharedFilesList.innerHTML = '';
-
-    // Reset all forms
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-        form.reset();
-        // Clear any validation states or error messages
-        const inputs = form.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.classList.remove('is-invalid', 'is-valid');
-            // Clear any custom validation messages
-            const feedback = input.nextElementSibling;
-            if (feedback && feedback.classList.contains('invalid-feedback')) {
-                feedback.textContent = '';
-            }
-        });
-    });
-
-    // Close any open modals
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        const modalInstance = bootstrap.Modal.getInstance(modal);
-        if (modalInstance) {
-            modalInstance.hide();
-        }
-    });
-
-    // Clear any error messages or alerts
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => alert.remove());
-
-    // Update UI using the new function
-    showUnauthenticatedUI();
-    showLoginModal();
-}
-
-// Delete file
 async function deleteFile(fileId) {
-    if (!confirm('Are you sure you want to delete this file?')) return;
-
-    showLoading('Deleting file...');
+    if (!fileId) return;
+    if (!confirm('Delete this file?')) return;
+    showLoading('Deleting…');
     try {
-        const response = await fetch(`${API_URL}/file/${fileId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
+        const response = await fetch(`${API_URL}/file/${encodeURIComponent(fileId)}`, {
+            method: 'DELETE', headers: authHeaders()
         });
         handleApiResponse(response);
         if (response.ok) {
-            await loadFiles(); // Reload the file list after successful deletion
+            await loadFiles();
         } else {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             alert(data.error || 'Delete failed');
         }
     } catch (error) {
@@ -303,41 +225,26 @@ async function deleteFile(fileId) {
     }
 }
 
-// Download file
 async function downloadFile(fileId, filename) {
-    if (!fileId) {
-        alert('Invalid file ID');
-        return;
-    }
-
-    showLoading('Preparing download...');
+    if (!fileId) { alert('Invalid file ID'); return; }
+    showLoading('Preparing download…');
     try {
-        const response = await fetch(`${API_URL}/file/${fileId}`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
+        const response = await fetch(`${API_URL}/file/${encodeURIComponent(fileId)}`, {
+            headers: authHeaders()
         });
         handleApiResponse(response);
         if (!response.ok) {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             throw new Error(data.error || 'Download failed');
         }
-
-        // Get the blob from the response
         const blob = await response.blob();
-
-        // Create a temporary URL for the blob
         const url = window.URL.createObjectURL(blob);
-
-        // Create a temporary link element
         const link = document.createElement('a');
         link.href = url;
-        link.download = filename; // Use the passed filename
+        link.download = filename || 'download';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        // Clean up the URL
         window.URL.revokeObjectURL(url);
     } catch (error) {
         alert(`Error during download: ${error.message || error}`);
@@ -346,124 +253,31 @@ async function downloadFile(fileId, filename) {
     }
 }
 
-// Initialize password visibility toggles
-function togglePasswordVisibility(inputId, buttonId) {
-    const input = document.getElementById(inputId);
-    const button = document.getElementById(buttonId);
-    if (input && button) {
-        button.addEventListener('click', () => {
-            const type = input.type === 'password' ? 'text' : 'password';
-            input.type = type;
-            button.innerHTML = `<i class="bi bi-eye${type === 'password' ? '' : '-slash'}"></i>`;
-        });
-    }
+/* -------------------------------------------------------------- session */
+function logout() {
+    localStorage.removeItem('token');
+
+    const myFiles = document.getElementById('myFilesList');
+    const shFiles = document.getElementById('sharedFilesList');
+    if (myFiles) myFiles.textContent = '';
+    if (shFiles) shFiles.textContent = '';
+
+    document.querySelectorAll('form').forEach(form => {
+        form.reset();
+        form.querySelectorAll('input').forEach(i => i.classList.remove('is-invalid', 'is-valid'));
+    });
+
+    document.querySelectorAll('.modal').forEach(modal => {
+        const inst = bootstrap.Modal.getInstance(modal);
+        if (inst) inst.hide();
+    });
+
+    showUnauthenticatedUI();
+    showLoginModal();
 }
 
-// Check authentication status
-function checkAuth() {
-    const token = localStorage.getItem('token');
-    if (token) {
-        showAuthenticatedUI();
-    } else {
-        showUnauthenticatedUI();
-    }
-}
-
-// Fetch and display user details
-async function fetchUserDetails() {
-    try {
-        const response = await fetch(`${API_URL}/user-info`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
-        handleApiResponse(response);
-        if (response.status === 404) {
-            // User not found, treat as unauthenticated
-            localStorage.removeItem('token');
-            showUnauthenticatedUI();
-            showLoginModal();
-            throw new Error('User not found. Please log in again.');
-        }
-        if (!response.ok) {
-            throw new Error('Failed to fetch user details');
-        }
-        const userData = await response.json();
-        displayUserDetails(userData);
-    } catch (error) {
-        console.error('Error fetching user details:', error);
-        alert('Failed to load user details');
-    }
-}
-
-// Display user details in the UI
-function displayUserDetails(userData) {
-    if (!userData) return;
-    // Update navigation username
-    const navUsername = document.getElementById('navUsername');
-    if (navUsername) {
-        // Add admin badge if user is admin
-        navUsername.textContent = userData.username;
-        if (userData.is_admin) {
-            navUsername.innerHTML += ' <span class="badge bg-warning">Admin</span>';
-            // Show admin-only options
-            document.getElementById('createUserNavItem').style.display = 'block';
-            document.getElementById('createUserDivider').style.display = 'block';
-            // Show users panel nav item
-            const showUsersPanelNavItem = document.getElementById('showUsersPanelNavItem');
-            if (showUsersPanelNavItem) showUsersPanelNavItem.style.display = 'block';
-        } else {
-            // Hide admin-only options
-            document.getElementById('createUserNavItem').style.display = 'none';
-            document.getElementById('createUserDivider').style.display = 'none';
-            // Hide users panel nav item
-            const showUsersPanelNavItem = document.getElementById('showUsersPanelNavItem');
-            if (showUsersPanelNavItem) showUsersPanelNavItem.style.display = 'none';
-        }
-    }
-}
-
-// Show authenticated UI
-function showAuthenticatedUI() {
-    // Show user profile
-    const userProfileNav = document.getElementById('userProfileNav');
-    if (userProfileNav) userProfileNav.classList.remove('d-none');
-
-    // Show main content
-    document.getElementById('authSection').style.display = 'none';
-    document.getElementById('mainSection').style.display = 'block';
-
-    // Fetch and display user details
-    fetchUserDetails();
-
-    // Load files
-    loadFiles();
-}
-
-// Show unauthenticated UI
-function showUnauthenticatedUI() {
-    // Hide user profile
-    const userProfileNav = document.getElementById('userProfileNav');
-    if (userProfileNav) userProfileNav.classList.add('d-none');
-
-    // Show auth content
-    document.getElementById('authSection').style.display = 'block';
-    document.getElementById('mainSection').style.display = 'none';
-}
-
-// Helper to show the login modal
-function showLoginModal() {
-    const loginModalElement = document.getElementById('loginModal');
-    if (loginModalElement) {
-        const loginModal = new bootstrap.Modal(loginModalElement);
-        loginModal.show();
-    }
-}
-
-// Update handleApiResponse to show login modal on 498
 function handleApiResponse(response) {
-    if (response.status === 498) {
-        // Token missing or expired
+    if (response.status === 498 || response.status === 401) {
         localStorage.removeItem('token');
         showUnauthenticatedUI();
         showLoginModal();
@@ -472,44 +286,112 @@ function handleApiResponse(response) {
     return response;
 }
 
-// Helper to render the users panel (admin only)
-function renderUsersPanel(users) {
-    const usersList = document.getElementById('usersList');
-    if (!usersList) return;
-    usersList.innerHTML = '';
-    users.forEach(user => {
-        const userItem = document.createElement('div');
-        userItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        userItem.innerHTML = `
-            <span><strong>${user.username}</strong> ${user.is_admin ? '<span class="badge bg-warning">Admin</span>' : ''}</span>
-            <button class="btn btn-sm btn-danger delete-user-btn" data-user-id="${user.id}"><i class="bi bi-trash"></i> Delete</button>
-        `;
-        usersList.appendChild(userItem);
-    });
-    // Attach event listeners for delete buttons
-    usersList.querySelectorAll('.delete-user-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const userId = this.getAttribute('data-user-id');
-            deleteUser(userId, this);
-        });
+/* --------------------------------------------------------- user details */
+async function fetchUserDetails() {
+    try {
+        const response = await fetch(`${API_URL}/user-info`, { headers: authHeaders() });
+        if (response.status === 404) {
+            localStorage.removeItem('token');
+            showUnauthenticatedUI();
+            showLoginModal();
+            return;
+        }
+        handleApiResponse(response);
+        if (!response.ok) throw new Error('Failed to fetch user details');
+        displayUserDetails(await response.json());
+    } catch (error) {
+        console.error('Error fetching user details:', error);
+    }
+}
+
+function displayUserDetails(userData) {
+    if (!userData) return;
+    const navUsername = document.getElementById('navUsername');
+    if (navUsername) {
+        navUsername.textContent = userData.username;   // safe: no HTML
+        if (userData.is_admin) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-admin';
+            badge.textContent = 'admin';
+            navUsername.appendChild(badge);
+        }
+    }
+    const adminEls = ['createUserNavItem', 'createUserDivider', 'showUsersPanelNavItem'];
+    adminEls.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = userData.is_admin ? 'block' : 'none';
     });
 }
 
-// Fetch all users (admin only)
+/* ------------------------------------------------------------- UI state */
+function showAuthenticatedUI() {
+    const nav = document.getElementById('userProfileNav');
+    if (nav) nav.classList.remove('d-none');
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('mainSection').style.display = 'block';
+    fetchUserDetails();
+    loadFiles();
+}
+
+function showUnauthenticatedUI() {
+    const nav = document.getElementById('userProfileNav');
+    if (nav) nav.classList.add('d-none');
+    document.getElementById('authSection').style.display = 'block';
+    document.getElementById('mainSection').style.display = 'none';
+    const navUsername = document.getElementById('navUsername');
+    if (navUsername) navUsername.textContent = 'User';
+}
+
+function showLoginModal() {
+    const el = document.getElementById('loginModal');
+    if (el) new bootstrap.Modal(el).show();
+}
+
+function checkAuth() {
+    if (localStorage.getItem('token')) showAuthenticatedUI();
+    else showUnauthenticatedUI();
+}
+
+/* ------------------------------------------------------- users (admin) */
+function renderUsersPanel(users) {
+    const usersList = document.getElementById('usersList');
+    if (!usersList) return;
+    usersList.textContent = '';
+
+    (users || []).forEach(user => {
+        const row = document.createElement('div');
+        row.className = 'user-row';
+
+        const left = document.createElement('span');
+        left.className = 'uname';
+        const strong = document.createElement('strong');
+        strong.textContent = user.username;          // safe
+        left.appendChild(strong);
+        if (user.is_admin) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-admin';
+            badge.textContent = 'admin';
+            left.appendChild(badge);
+        }
+        row.appendChild(left);
+
+        const del = document.createElement('button');
+        del.className = 'btn btn-danger';
+        del.innerHTML = '<i class="bi bi-trash3 me-1"></i>Delete';
+        del.addEventListener('click', () => deleteUser(user.id, del));
+        row.appendChild(del);
+
+        usersList.appendChild(row);
+    });
+}
+
 async function fetchAllUsers() {
     try {
-        showLoading('Loading users...');
-        const response = await fetch(`${API_URL}/users`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
+        showLoading('Loading users…');
+        const response = await fetch(`${API_URL}/users`, { headers: authHeaders() });
         handleApiResponse(response);
-        if (!response.ok) {
-            throw new Error('Failed to fetch users');
-        }
-        const users = await response.json();
-        renderUsersPanel(users);
+        if (!response.ok) throw new Error('Failed to fetch users');
+        renderUsersPanel(await response.json());
     } catch (error) {
         console.error('Error fetching users:', error);
         alert(error.message || 'Failed to load users');
@@ -518,25 +400,21 @@ async function fetchAllUsers() {
     }
 }
 
-// Update deleteUser to use id in the API call
 async function deleteUser(userId, btn) {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    if (!confirm('Delete this user?')) return;
     btn.disabled = true;
     try {
-        showLoading('Deleting user...');
+        showLoading('Deleting user…');
         const response = await fetch(`${API_URL}/users/${encodeURIComponent(userId)}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
+            method: 'DELETE', headers: authHeaders()
         });
         handleApiResponse(response);
         if (!response.ok) {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             throw new Error(data.error || 'Delete failed');
         }
-        // Remove user from the list
-        btn.closest('.list-group-item').remove();
+        const row = btn.closest('.user-row');
+        if (row) row.remove();
     } catch (error) {
         alert(`Error during delete: ${error.message || error}`);
     } finally {
@@ -545,50 +423,48 @@ async function deleteUser(userId, btn) {
     }
 }
 
-// Fetch users when the usersModal is shown
-const usersModal = document.getElementById('usersModal');
-if (usersModal) {
-    usersModal.addEventListener('show.bs.modal', () => {
-        fetchAllUsers();
-    });
+/* ---------------------------------------------------- password reveal */
+function togglePasswordVisibility(inputId, buttonId) {
+    const input = document.getElementById(inputId);
+    const button = document.getElementById(buttonId);
+    if (input && button) {
+        button.addEventListener('click', () => {
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            button.innerHTML = `<i class="bi bi-eye${show ? '-slash' : ''}"></i>`;
+        });
+    }
 }
 
-// Initialize the application
+/* --------------------------------------------------------------- init */
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize password visibility toggles
+    initTheme();
+
     togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
     togglePasswordVisibility('currentPassword', 'toggleCurrentPassword');
     togglePasswordVisibility('newPassword', 'toggleNewPassword');
     togglePasswordVisibility('newUserPassword', 'toggleNewUserPassword');
 
-    // Handle login
+    // Login
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-
-            showLoading('Logging in...');
+            showLoading('Signing in…');
             try {
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-
                 const data = await response.json();
                 if (response.ok) {
-                    // Store only the token
                     localStorage.setItem('token', data.token);
-
                     const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
                     if (modal) modal.hide();
                     loginForm.reset();
-
-                    // Update UI using the new function
                     showAuthenticatedUI();
                     hideLoading();
                 } else {
@@ -602,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle file upload
+    // Upload
     const uploadForm = document.getElementById('uploadForm');
     const fileInput = document.getElementById('fileInput');
     if (uploadForm && fileInput) {
@@ -610,90 +486,63 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const files = fileInput.files;
             if (files.length === 0) return;
-
-            // Check if shared checkbox is checked
             const isShared = document.getElementById('sharedCheckbox')?.checked || false;
             const uploadUrl = `${API_URL}/upload${isShared ? '?shared=true' : ''}`;
 
-            showLoading('Uploading files...');
-            let uploadSuccess = true;
-            // Upload each file individually
-            for (let file of files) {
+            showLoading('Uploading…');
+            let ok = true;
+            for (const file of files) {
                 const formData = new FormData();
                 formData.append('files', file);
-
                 try {
                     const response = await fetch(uploadUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                        },
-                        body: formData,
+                        method: 'POST', headers: authHeaders(), body: formData
                     });
-
                     if (!response.ok) {
-                        const data = await response.json();
+                        const data = await response.json().catch(() => ({}));
                         alert(data.error || `Failed to upload ${file.name}`);
-                        uploadSuccess = false;
+                        ok = false;
                     }
                 } catch (error) {
                     console.error('Upload error:', error);
                     alert(`Error uploading ${file.name}`);
-                    uploadSuccess = false;
+                    ok = false;
                 }
             }
-
-            // Clear the input and reload files
             fileInput.value = '';
-            uploadForm.reset(); // Reset the entire form including the shared checkbox
+            uploadForm.reset();
             await loadFiles();
-
-            if (uploadSuccess) {
-                showLoading('Upload successful!');
-                // Wait for 2 seconds before hiding the loading message
-                setTimeout(() => {
-                    hideLoading();
-                }, 2000);
+            if (ok) {
+                showLoading('Uploaded');
+                setTimeout(hideLoading, 1200);
             } else {
                 hideLoading();
             }
         });
     }
 
-    // Handle reset password
+    // Reset password
     const resetPasswordForm = document.getElementById('resetPasswordForm');
     if (resetPasswordForm) {
         resetPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
-
-            // Validate new password length
-            if (newPassword.length < 8) {
-                alert('New password must be at least 8 characters long');
-                return;
-            }
-
-            showLoading('Resetting password...');
+            if (newPassword.length < 8) { alert('New password must be at least 8 characters'); return; }
+            showLoading('Updating password…');
             try {
                 const response = await fetch(`${API_URL}/reset-password`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
                 });
-
                 const data = await response.json();
                 if (response.ok) {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
                     if (modal) modal.hide();
                     resetPasswordForm.reset();
-                    showLoading('Password reset successful!');
-                    setTimeout(() => {
-                        hideLoading();
-                    }, 2000);
+                    showLoading('Password updated');
+                    setTimeout(hideLoading, 1200);
                 } else {
                     throw new Error(data.error || 'Password reset failed');
                 }
@@ -705,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle create user
+    // Create user
     const createUserForm = document.getElementById('createUserForm');
     if (createUserForm) {
         createUserForm.addEventListener('submit', async (e) => {
@@ -713,33 +562,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = document.getElementById('newUsername').value;
             const password = document.getElementById('newUserPassword').value;
             const isAdmin = document.getElementById('isAdminCheckbox').checked;
-
-            // Validate password length
-            if (password.length < 8) {
-                alert('Password must be at least 8 characters long');
-                return;
-            }
-
-            showLoading('Creating user...');
+            if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
+            showLoading('Creating user…');
             try {
                 const response = await fetch(`${API_URL}/signup`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ username, password, is_admin: isAdmin })
                 });
-
                 const data = await response.json();
                 if (response.ok) {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
                     if (modal) modal.hide();
                     createUserForm.reset();
-                    showLoading('User created successfully!');
-                    setTimeout(() => {
-                        hideLoading();
-                    }, 2000);
+                    showLoading('User created');
+                    setTimeout(hideLoading, 1200);
                 } else {
                     throw new Error(data.error || 'Failed to create user');
                 }
@@ -751,54 +588,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle file search
+    // Search
     const fileSearchForm = document.getElementById('fileSearchForm');
     const fileSearchInput = document.getElementById('fileSearchInput');
     if (fileSearchForm && fileSearchInput) {
         fileSearchForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const keyword = fileSearchInput.value.trim();
-            if (!keyword) {
-                // If search is empty, reload all files
-                await loadFiles();
-                return;
-            }
-            showLoading('Searching files...');
+            if (!keyword) { await loadFiles(); return; }
+            showLoading('Searching…');
             try {
-                // Search my files
-                const myFilesResponse = await fetch(`${API_URL}/files?keyword=${encodeURIComponent(keyword)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
-                });
-                handleApiResponse(myFilesResponse);
-                const myFilesData = await myFilesResponse.json();
-                if (!myFilesResponse.ok) {
-                    throw new Error(myFilesData.error || 'Failed to search my files');
-                }
-                const myFilesList = document.getElementById('myFilesList');
-                if (myFilesList) {
-                    displayFiles(myFilesData, myFilesList, 'My Files');
-                }
+                const myResp = await fetch(`${API_URL}/files?keyword=${encodeURIComponent(keyword)}`, { headers: authHeaders() });
+                handleApiResponse(myResp);
+                const myData = await myResp.json();
+                if (!myResp.ok) throw new Error(myData.error || 'Search failed');
+                displayFiles(myData, document.getElementById('myFilesList'),
+                             document.getElementById('myFilesCount'));
 
-                // Search shared files
-                const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true&keyword=${encodeURIComponent(keyword)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
-                });
-                fileSearchForm.addEventListener('reset', async () => {
-                    await loadFiles(); // reload all files when reset is clicked
-                });
-                handleApiResponse(sharedFilesResponse);
-                const sharedFilesData = await sharedFilesResponse.json();
-                if (!sharedFilesResponse.ok) {
-                    throw new Error(sharedFilesData.error || 'Failed to search shared files');
-                }
-                const sharedFilesList = document.getElementById('sharedFilesList');
-                if (sharedFilesList) {
-                    displayFiles(sharedFilesData, sharedFilesList, 'Public Files');
-                }
+                const shResp = await fetch(`${API_URL}/files?shared=true&keyword=${encodeURIComponent(keyword)}`, { headers: authHeaders() });
+                handleApiResponse(shResp);
+                const shData = await shResp.json();
+                if (!shResp.ok) throw new Error(shData.error || 'Search failed');
+                displayFiles(shData, document.getElementById('sharedFilesList'),
+                             document.getElementById('sharedFilesCount'));
             } catch (error) {
                 console.error('Error searching files:', error);
                 alert(error.message || 'Error searching files');
@@ -806,8 +618,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideLoading();
             }
         });
+        fileSearchForm.addEventListener('reset', () => { loadFiles(); });
     }
 
-    // Check initial authentication status
+    // Users modal
+    const usersModal = document.getElementById('usersModal');
+    if (usersModal) {
+        usersModal.addEventListener('show.bs.modal', fetchAllUsers);
+    }
+
     checkAuth();
-}); 
+});
