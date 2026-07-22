@@ -38,21 +38,24 @@ func (h *FileHandler) UploadFile(c *fiber.Ctx) error {
 
 	// Create shared folder if not exists
 	dirPath := filepath.Join(fileDir, sharedDir)
-	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(dirPath, 0o750); err != nil {
 		return fmt.Errorf("failed to create shared dir: %w", err)
 	}
 
 	if !isShared {
 		// Create user's folder if not exists
 		dirPath = filepath.Join(fileDir, userID)
-		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		if err := os.MkdirAll(dirPath, 0o750); err != nil {
 			return fmt.Errorf("failed to create user dir: %w", err)
 		}
 	}
 
 	for _, file := range files {
 
-		filename, err := internal.ResolveFileNameConflict(userID, file.Filename, isShared, h.DB)
+		// Strip any path from the client provided filename
+		safeName := internal.SanitizeFilename(file.Filename)
+
+		filename, err := internal.ResolveFileNameConflict(userID, safeName, isShared, h.DB)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not resolve filename"})
 		}
@@ -167,6 +170,8 @@ func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 }
 
 func (h *FileHandler) DownloadFile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
 	// Get file name from the endpoint parameters using request context
 	fileID := c.Params("fileid")
 	fileID, err := internal.CleanParam(fileID)
@@ -174,10 +179,10 @@ func (h *FileHandler) DownloadFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "File ID provided is not proper"})
 	}
 
-	// Find the full file path
+	// Find the full file path, only if owned by the user or shared
 	var path string
 
-	row := h.DB.QueryRow(`SELECT path FROM metadata WHERE id = ? LIMIT 1`, fileID)
+	row := h.DB.QueryRow(`SELECT path FROM metadata WHERE id = ? AND (user_id = ? OR is_shared = TRUE) LIMIT 1`, fileID, userID)
 	if err := row.Scan(&path); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "File not found or access denied"})
 	}
@@ -201,17 +206,23 @@ func (h *FileHandler) DeleteFile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "File ID provided is not proper"})
 	}
 
-	// Find the full file path and share status
+	// Find the full file path, share status and owner.
 	var shared bool
 	var path string
 	var filename string
+	var ownerID string
 
-	row := h.DB.QueryRow(`SELECT filename, is_shared, path FROM metadata WHERE id = ? LIMIT 1`, fileID)
-	if err = row.Scan(&filename, &shared, &path); err != nil {
+	row := h.DB.QueryRow(`SELECT filename, is_shared, path, user_id FROM metadata WHERE id = ? LIMIT 1`, fileID)
+	if err = row.Scan(&filename, &shared, &path, &ownerID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "File not found"})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not fetch file metadata"})
+	}
+
+	// Check ownership before removing anything from the disk
+	if !shared && ownerID != userID {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
 	}
 
 	// Deletes the file from the disk
@@ -221,12 +232,7 @@ func (h *FileHandler) DeleteFile(c *fiber.Ctx) error {
 	}
 
 	// Deletes the metadata of the file
-	if shared {
-		_, err = h.DB.Exec(`DELETE FROM metadata WHERE id = ? AND is_shared = ?`, fileID, true)
-	} else {
-		_, err = h.DB.Exec(`DELETE FROM metadata WHERE id = ? AND user_id = ? AND is_shared = ?`, fileID, userID, false)
-	}
-	if err != nil {
+	if _, err = h.DB.Exec(`DELETE FROM metadata WHERE id = ?`, fileID); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete metadata"})
 	}
 

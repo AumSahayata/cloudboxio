@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -45,6 +46,32 @@ func ResolveFileNameConflict(userID, originalName string, isShared bool, db *sql
 	}
 
 	return finalname, nil
+}
+
+// SanitizeFilename strips the path and control characters from a filename.
+// Both separators are handled so the result is the same on every OS.
+func SanitizeFilename(name string) string {
+	name = strings.ReplaceAll(name, "\\", "/")
+	name = path.Base(name)
+
+	// Remove control characters
+	var b strings.Builder
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f {
+			continue
+		}
+		b.WriteRune(r)
+	}
+
+	// Strip leading dots so "." and ".." cannot be used as a name
+	cleaned := strings.TrimSpace(b.String())
+	cleaned = strings.TrimLeft(cleaned, ".")
+	cleaned = strings.TrimSpace(cleaned)
+
+	if cleaned == "" {
+		return "file"
+	}
+	return cleaned
 }
 
 func CleanParam(param string) (string, error) {
