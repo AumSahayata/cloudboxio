@@ -1,9 +1,8 @@
 /* =========================================================================
    CloudBoxIO — UI theme system
-   Three themes driven by [data-theme] on <html>:
+   Two themes driven by [data-theme] on <html>:
      paper   → light, thin blue accent (refined original)
      carbon  → dark, GitHub/Telegram-like
-     aurora  → frosted "liquid glass" / acrylic
    Design intent: dense, utilitarian, developer-tool feel. Monospace metadata,
    hairline borders instead of heavy shadows, compact rows.
    ========================================================================= */
@@ -66,35 +65,6 @@
   --body-bg-image: none;
 }
 
-/* ---- Aurora (frosted glass / acrylic) ---- */
-:root[data-theme="aurora"] {
-  --bg: #10142b;
-  --bg-elev: rgba(255, 255, 255, 0.09);
-  --bg-elev-2: rgba(255, 255, 255, 0.055);
-  --border: rgba(255, 255, 255, 0.16);
-  --border-strong: rgba(255, 255, 255, 0.28);
-  --text: #f2f5ff;
-  --text-dim: rgba(226, 232, 255, 0.66);
-  --accent: #8aa8ff;
-  --accent-hover: #a0baff;
-  --accent-contrast: #10142b;
-  --accent-soft: rgba(138, 168, 255, 0.20);
-  --danger: #ff8085;
-  --danger-soft: rgba(255, 128, 133, 0.16);
-  --warn: #ffcf6b;
-
-  --header-bg: rgba(255, 255, 255, 0.07);
-  --header-fg: #f2f5ff;
-  --header-border: rgba(255, 255, 255, 0.14);
-  --row-hover: rgba(255, 255, 255, 0.07);
-  --shadow: 0 8px 30px rgba(6, 10, 30, 0.35);
-  --panel-blur: saturate(150%) blur(18px);
-  --body-bg-image:
-    radial-gradient(60vw 60vw at 12% -10%, rgba(120, 90, 255, 0.55), transparent 60%),
-    radial-gradient(55vw 55vw at 100% 10%, rgba(0, 190, 200, 0.42), transparent 58%),
-    radial-gradient(60vw 60vw at 50% 120%, rgba(255, 90, 190, 0.40), transparent 60%);
-}
-
 /* ------------------------------------------------------------------ base */
 * { box-sizing: border-box; }
 
@@ -116,7 +86,7 @@ body {
   min-height: 100vh;
 }
 
-.container { max-width: 900px; }
+.container { max-width: 900px; margin: 0 auto; }
 
 ::selection { background: var(--accent-soft); }
 
@@ -161,7 +131,6 @@ body {
   border-color: var(--border-strong);
   color: var(--accent);
 }
-:root[data-theme="aurora"] .brand-mark { background: rgba(255, 255, 255, 0.14); }
 
 .app-bar-spacer { flex: 1; }
 
@@ -175,7 +144,6 @@ body {
 }
 :root[data-theme="paper"] .theme-switch { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.28); }
 :root[data-theme="carbon"] .theme-switch { background: var(--bg-elev-2); border-color: var(--border); }
-:root[data-theme="aurora"] .theme-switch { background: rgba(255,255,255,0.10); }
 
 .ts-btn {
   border: 0;
@@ -194,7 +162,6 @@ body {
   background: rgba(255,255,255,0.28);
 }
 :root[data-theme="carbon"] .ts-btn.active { background: var(--accent-soft); color: var(--accent); }
-:root[data-theme="aurora"] .ts-btn.active { background: rgba(255,255,255,0.22); }
 
 /* user menu button in header */
 .user-menu-btn {
@@ -206,8 +173,7 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
   cursor: pointer;
 }
-:root[data-theme="carbon"] .user-menu-btn,
-:root[data-theme="aurora"] .user-menu-btn { border-color: var(--border-strong); }
+:root[data-theme="carbon"] .user-menu-btn
 .user-menu-btn:hover { background: rgba(255,255,255,0.14); }
 
 /* -------------------------------------------------------------- surfaces */
@@ -473,10 +439,48 @@ input[type="file"].field::file-selector-button {
 }
 .modal-header, .modal-footer { border-color: var(--border); }
 .modal-title { font-size: 0.98rem; font-weight: 600; }
-.btn-close { filter: var(--btn-close-filter, none); }
-:root[data-theme="carbon"] .btn-close,
-:root[data-theme="aurora"] .btn-close { filter: invert(1) grayscale(1) brightness(1.4); }
-.modal-backdrop.show { opacity: 0.55; }
+.btn-close {
+  box-sizing: content-box;
+  width: 1em;
+  height: 1em;
+  padding: 0.25em;
+  background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+  border: 0;
+  border-radius: var(--radius-sm);
+  opacity: 0.6;
+  cursor: pointer;
+}
+.btn-close:hover { opacity: 1; }
+:root[data-theme="carbon"] .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
+
+/* ---- minimal modal system (replaces bootstrap JS modal) ---- */
+.modal { display: none; position: fixed; inset: 0; z-index: 1055; overflow-y: auto; }
+.modal.open { display: block; }
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(8, 12, 24, 0.55);
+  z-index: 1050;
+  opacity: 0; transition: opacity .12s;
+}
+.modal-backdrop.show { opacity: 1; }
+.modal-dialog { max-width: 500px; margin: 1.75rem auto; position: relative; z-index: 1056; }
+.modal-dialog.modal-lg { max-width: 700px; }
+.modal-header, .modal-body { padding: 1rem 1.25rem; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+
+.dropdown { position: relative; }
+.dropdown-menu {
+  display: none; position: absolute; min-width: 200px; z-index: 1040;
+  padding: 6px; list-style: none; margin: 6px 0 0;
+}
+.dropdown-menu.show { display: block; }
+.dropdown-menu-end { right: 0; left: auto; }
+.dropdown-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 10px; background: none; border: 0; text-align: left;
+  cursor: pointer; font-size: 0.85rem; text-decoration: none;
+}
+.dropdown-divider { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
 
 /* user list rows inside modal */
 .user-row {
@@ -537,3 +541,6 @@ input[type="file"].field::file-selector-button {
   .container { padding-left: 12px; padding-right: 12px; }
   .file-meta .uploader { display: none; }
 }
+
+.page-pad { margin-top: 12px; }
+@media (min-width: 768px) { .page-pad { margin-top: 16px; } }

@@ -10,8 +10,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <!-- Bootstrap (used for modals, dropdowns, tooltips + grid utilities) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
 </head>
@@ -32,54 +30,50 @@
             <button type="button" class="ts-btn" data-theme-value="carbon" title="Dark">
                 <i class="bi bi-moon-stars-fill"></i>
             </button>
-            <button type="button" class="ts-btn" data-theme-value="aurora" title="Glass">
-                <i class="bi bi-droplet-half"></i>
-            </button>
         </div>
 
         <!-- User menu (shown when logged in) -->
         <div class="dropdown d-none" id="userProfileNav">
-            <button class="user-menu-btn dropdown-toggle" type="button" id="userProfileDropdown"
-                    data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="user-menu-btn dropdown-toggle" type="button" id="userProfileDropdown" aria-expanded="false">
                 <i class="bi bi-person-circle"></i>
                 <span id="navUsername">User</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userProfileDropdown">
                 <li id="createUserNavItem" style="display:none;">
-                    <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#createUserModal">
-                        <i class="bi bi-person-plus me-1"></i>Create user
+                    <button class="dropdown-item" data-modal-target="createUserModal">
+                        <i class="bi bi-person-plus"></i>Create user
                     </button>
                 </li>
                 <li id="showUsersPanelNavItem" style="display:none;">
-                    <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#usersModal">
-                        <i class="bi bi-people me-1"></i>Manage users
+                    <button class="dropdown-item" data-modal-target="usersModal">
+                        <i class="bi bi-people"></i>Manage users
                     </button>
                 </li>
                 <li id="createUserDivider" style="display:none;"><hr class="dropdown-divider"></li>
                 <li>
-                    <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
-                        <i class="bi bi-key me-1"></i>Reset password
+                    <button class="dropdown-item" data-modal-target="resetPasswordModal">
+                        <i class="bi bi-key"></i>Reset password
                     </button>
                 </li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <button class="dropdown-item text-danger" onclick="logout()">
-                        <i class="bi bi-box-arrow-right me-1"></i>Log out
+                        <i class="bi bi-box-arrow-right"></i>Log out
                     </button>
                 </li>
             </ul>
         </div>
     </header>
 
-    <div class="container mt-3 mt-md-4">
+    <div class="container">
         <!-- Logged-out -->
         <div id="authSection">
             <div class="welcome">
                 <div class="glyph"><i class="bi bi-cloud-arrow-up-fill"></i></div>
                 <h1>CloudBoxIO</h1>
                 <p>Self-hosted file storage. Sign in to continue.</p>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">
-                    <i class="bi bi-box-arrow-in-right me-1"></i>Log in
+                <button class="btn btn-primary" data-modal-target="loginModal">
+                    <i class="bi bi-box-arrow-in-right"></i>Log in
                 </button>
             </div>
         </div>
@@ -95,7 +89,7 @@
                         <input type="checkbox" id="sharedCheckbox"> Make public
                     </label>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-cloud-arrow-up me-1"></i>Upload
+                        <i class="bi bi-cloud-arrow-up"></i>Upload
                     </button>
                 </form>
             </div>
@@ -128,12 +122,12 @@
     </div>
 
     <!-- Login modal -->
-    <div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal" id="loginModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Log in</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-modal-dismiss></button>
                 </div>
                 <div class="modal-body">
                     <form id="loginForm">
@@ -156,12 +150,12 @@
     </div>
 
     <!-- Reset password modal -->
-    <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal" id="resetPasswordModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Reset password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-modal-dismiss></button>
                 </div>
                 <div class="modal-body">
                     <form id="resetPasswordForm">
@@ -188,12 +182,12 @@
     </div>
 
     <!-- Create user modal -->
-    <div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal" id="createUserModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Create user</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-modal-dismiss></button>
                 </div>
                 <div class="modal-body">
                     <form id="createUserForm">
@@ -220,12 +214,12 @@
     </div>
 
     <!-- Users modal (admin) -->
-    <div class="modal fade" id="usersModal" tabindex="-1">
+    <div class="modal" id="usersModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Users</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-modal-dismiss></button>
                 </div>
                 <div class="modal-body">
                     <div id="usersList"></div>
@@ -242,7 +236,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

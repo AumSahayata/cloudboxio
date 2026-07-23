@@ -3,12 +3,12 @@ const API_URL = '/api';
 
 /* ----------------------------------------------------------------- themes */
 const THEME_KEY = 'cbio-theme';
-const THEMES = ['paper', 'carbon', 'aurora'];
+const THEMES = ['paper', 'carbon'];
 
 function applyTheme(theme) {
     if (!THEMES.includes(theme)) theme = 'paper';
     document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+    try { localStorage.setItem(THEME_KEY, theme); } catch (_) { }
     document.querySelectorAll('.ts-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.themeValue === theme);
     });
@@ -16,7 +16,7 @@ function applyTheme(theme) {
 
 function initTheme() {
     let saved = 'paper';
-    try { saved = localStorage.getItem(THEME_KEY) || 'paper'; } catch (_) {}
+    try { saved = localStorage.getItem(THEME_KEY) || 'paper'; } catch (_) { }
     applyTheme(saved);
     document.querySelectorAll('.ts-btn').forEach(btn => {
         btn.addEventListener('click', () => applyTheme(btn.dataset.themeValue));
@@ -188,14 +188,14 @@ async function loadFiles() {
         const myData = await myResp.json();
         if (!myResp.ok) throw new Error(myData.error || 'Failed to fetch files');
         displayFiles(myData, document.getElementById('myFilesList'),
-                     document.getElementById('myFilesCount'));
+            document.getElementById('myFilesCount'));
 
         const shResp = await fetch(`${API_URL}/files?shared=true`, { headers: authHeaders() });
         handleApiResponse(shResp);
         const shData = await shResp.json();
         if (!shResp.ok) throw new Error(shData.error || 'Failed to fetch public files');
         displayFiles(shData, document.getElementById('sharedFilesList'),
-                     document.getElementById('sharedFilesCount'));
+            document.getElementById('sharedFilesCount'));
     } catch (error) {
         console.error('Error loading files:', error);
     } finally {
@@ -462,8 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-                    if (modal) modal.hide();
+                    closeModal('loginModal');
                     loginForm.reset();
                     showAuthenticatedUI();
                     hideLoading();
@@ -538,8 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
-                    if (modal) modal.hide();
+                    closeModal('resetPasswordModal')
                     resetPasswordForm.reset();
                     showLoading('Password updated');
                     setTimeout(hideLoading, 1200);
@@ -572,8 +570,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
-                    if (modal) modal.hide();
                     createUserForm.reset();
                     showLoading('User created');
                     setTimeout(hideLoading, 1200);
@@ -603,14 +599,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const myData = await myResp.json();
                 if (!myResp.ok) throw new Error(myData.error || 'Search failed');
                 displayFiles(myData, document.getElementById('myFilesList'),
-                             document.getElementById('myFilesCount'));
+                    document.getElementById('myFilesCount'));
 
                 const shResp = await fetch(`${API_URL}/files?shared=true&keyword=${encodeURIComponent(keyword)}`, { headers: authHeaders() });
                 handleApiResponse(shResp);
                 const shData = await shResp.json();
                 if (!shResp.ok) throw new Error(shData.error || 'Search failed');
                 displayFiles(shData, document.getElementById('sharedFilesList'),
-                             document.getElementById('sharedFilesCount'));
+                    document.getElementById('sharedFilesCount'));
             } catch (error) {
                 console.error('Error searching files:', error);
                 alert(error.message || 'Error searching files');
@@ -624,8 +620,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // Users modal
     const usersModal = document.getElementById('usersModal');
     if (usersModal) {
-        usersModal.addEventListener('show.bs.modal', fetchAllUsers);
+        usersModal.addEventListener('modal:show', fetchAllUsers);
     }
 
+    initModals();
+    initDropdowns();
     checkAuth();
 });
+
+/* ------------------------------------------------- modal (no bootstrap) */
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    let backdrop = document.querySelector('.modal-backdrop');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+        document.body.appendChild(backdrop);
+        backdrop.addEventListener('click', () => {
+            document.querySelectorAll('.modal.open').forEach(m => closeModal(m.id));
+        });
+    }
+    requestAnimationFrame(() => backdrop.classList.add('show'));
+    modal.classList.add('open');
+    modal.dispatchEvent(new CustomEvent('modal:show'));
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove('open');
+    if (!document.querySelector('.modal.open')) {
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.remove();
+    }
+}
+
+function initModals() {
+    document.querySelectorAll('[data-modal-target]').forEach(btn => {
+        btn.addEventListener('click', () => openModal(btn.dataset.modalTarget));
+    });
+    document.querySelectorAll('[data-modal-dismiss]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.closest('.modal').id));
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('.modal.open').forEach(m => closeModal(m.id));
+    });
+}
+
+/* ---------------------------------------------- dropdown (no bootstrap) */
+function initDropdowns() {
+    document.querySelectorAll('.dropdown-toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const menu = btn.nextElementSibling;
+            const isOpen = menu.classList.contains('show');
+            document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+            if (!isOpen) menu.classList.add('show');
+        });
+    });
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    });
+}
