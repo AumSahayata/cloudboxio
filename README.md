@@ -19,9 +19,11 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 - 🎛️ Admin-only user management
 - 🗂️ Upload multiple files
 - 🛑 Graceful shutdown
-- 📱 Minimal Web UI
+- 📱 Minimal Web UI with three built-in themes (light, dark, glass)
 - 🔍 Search through uploaded or shared files by filename using query parameters
 - 🚧 Rate Limiting
+- 🔒 Optional TLS (HTTPS) support
+- 🐳 Docker support
 - 🧪 Unit testing
 
 ---
@@ -29,17 +31,10 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 ## </> UI
 
 > CloudBoxIO includes a clean, responsive UI for file management out of the box.
+> Switch between the light, dark and glass themes from the header, the choice is remembered in the browser.
 
 <p align="center">
-  <img src="https://i.postimg.cc/ZRLWYKMC/index.png" alt="Landing page" width="600">
-</p>
-
-<p align="center">
-  <img src="https://i.postimg.cc/VNnSTF99/dashboard.png" alt="Dashboard page" width="600">
-</p>
-
-<p align="center">
-  <img src="https://i.postimg.cc/HxmJC73q/mobile-view.png" alt="Mobile view" width="250">
+  <img src="https://i.ibb.co/1Y6CDPRC/image.png">
 </p>
 
 ---
@@ -56,7 +51,21 @@ go build .
 ./cloudboxio
 ```
 
-> 💡 A `.env` file will be generated automatically on first run. You can edit it to change port, file directories, upload size, rate limiting, and more.
+> 💡 A `.env` file will be generated automatically on first run. You can edit it to change port, file directories, upload size, token lifetime, TLS certificates, rate limiting, and more.
+
+### 🐳 Docker
+
+```bash
+docker compose up --build
+```
+
+> 💡 State (`data.db`, `uploads/`, `logs/`, `.env`) is kept in the `/data` volume. The one-time admin password is written to `/data/temp_admin_credentials.txt`.
+
+### 🧪 Tests
+
+```bash
+go test ./...
+```
 
 ---
 
@@ -82,7 +91,6 @@ This project is licensed under the [MIT License](https://github.com/AumSahayata/
 - Ask questions or share ideas in [Discussions](https://github.com/AumSahayata/cloudboxio/discussions)  
 - Report bugs via [Issues](https://github.com/AumSahayata/cloudboxio/issues)  
 - Suggestions welcome! You can contribute:
-  - 🔄 Docker support  
   - 💻 Frontend improvements  
   - 🛠️ CI pipelines or GitHub Actions  
   - 🧪 Integration testing  

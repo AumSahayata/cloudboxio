@@ -48,6 +48,11 @@ func (h *AuthHandler) SignUp(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Username and password are required"})
 	}
 
+	// Validate password length
+	if len(req.Password) < 8 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Password must be at least 8 characters"})
+	}
+
 	// Generate the hash for the password.
 	hashedpwd, err := bcrypt.GenerateFromPassword([]byte(req.Password), 14)
 	if err != nil {
@@ -109,7 +114,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	// Generate JWT
-	token, err := internal.GenerateToken(userID, is_admin, 72)
+	token, err := internal.GenerateToken(userID, is_admin, internal.TokenExpiryHours())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate token"})
 	}

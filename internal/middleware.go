@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -28,10 +29,13 @@ func JWTProtected() fiber.Handler {
 		}
 		tokenString := parts[1]
 
-		// Verify the token and validate the signature
+		// Verify the token and validate the signature, only HMAC is accepted
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
 			return SecretKey, nil
-		})
+		}, jwt.WithValidMethods([]string{"HS256"}))
 
 		if err != nil || !token.Valid {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token"})
@@ -49,8 +53,14 @@ func JWTProtected() fiber.Handler {
 }
 
 func CORSMiddleware() fiber.Handler {
-	// Allowed address
-	var allowedOrigins string = "http://127.0.0.1:" + os.Getenv("PORT")
+	// Allowed addresses
+	port := os.Getenv("PORT")
+	allowedOrigins := strings.Join([]string{
+		"http://127.0.0.1:" + port,
+		"http://localhost:" + port,
+		"https://127.0.0.1:" + port,
+		"https://localhost:" + port,
+	}, ", ")
 
 	return cors.New(cors.Config{
 		AllowOrigins: allowedOrigins,
