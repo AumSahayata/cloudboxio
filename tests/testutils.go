@@ -43,7 +43,7 @@ func SetupTestDB(t *testing.T) *sql.DB {
 		filename TEXT,
 		size INTEGER,
 		path TEXT,
-		is_shared BOOLEAN DEFAULT FALSE,
+		is_public BOOLEAN DEFAULT FALSE,
 		uploaded_at string
 		);
 	`)

@@ -86,7 +86,7 @@ body {
   min-height: 100vh;
 }
 
-.container { max-width: 900px; margin: 0 auto; }
+.container { max-width: 1160px; margin: 0 auto; }
 
 ::selection { background: var(--accent-soft); }
 
@@ -173,7 +173,7 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
   cursor: pointer;
 }
-:root[data-theme="carbon"] .user-menu-btn
+:root[data-theme="carbon"] .user-menu-btn { border-color: var(--border-strong); }
 .user-menu-btn:hover { background: rgba(255,255,255,0.14); }
 
 /* -------------------------------------------------------------- surfaces */
@@ -214,7 +214,7 @@ body {
   gap: 10px;
 }
 .upload-bar .file-field { flex: 1 1 240px; min-width: 0; }
-.upload-bar .shared-toggle {
+.upload-bar .public-toggle {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 0.8rem; color: var(--text-dim);
   white-space: nowrap; cursor: pointer;
@@ -261,15 +261,19 @@ body {
 }
 .file-meta .sep { opacity: 0.5; padding: 0 2px; }
 
-.file-actions {
-  flex: none;
+.file-actions { flex: none; display: flex; align-items: center; }
+
+.file-actions-inline {
   display: flex;
   gap: 4px;
   opacity: 0.5;
   transition: opacity .12s;
 }
-.file-row:hover .file-actions,
-.file-row:focus-within .file-actions { opacity: 1; }
+.file-row:hover .file-actions-inline,
+.file-row:focus-within .file-actions-inline { opacity: 1; }
+
+.file-actions-dropdown { display: none; position: relative; }
+.file-actions-dropdown .dropdown-menu { min-width: 150px; }
 
 .icon-btn {
   border: 1px solid transparent;
@@ -420,7 +424,7 @@ input[type="file"].field::file-selector-button {
 .file-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 20px;
 }
 
 .search-bar { display: flex; gap: 8px; margin-bottom: 14px; }
@@ -465,6 +469,11 @@ input[type="file"].field::file-selector-button {
 .modal-backdrop.show { opacity: 1; }
 .modal-dialog { max-width: 500px; margin: 1.75rem auto; position: relative; z-index: 1056; }
 .modal-dialog.modal-lg { max-width: 700px; }
+.modal-dialog-centered {
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 3.5rem);
+}
 .modal-header, .modal-body { padding: 1rem 1.25rem; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
 
@@ -536,10 +545,56 @@ input[type="file"].field::file-selector-button {
 .loading-msg { font-size: 0.82rem; color: var(--text-dim); }
 
 /* ------------------------------------------------------------ responsive */
+
+/* Tablet and below: collapse the two-column layout, trim non-essential
+   metadata, give the page some breathing room on the sides. */
 @media (max-width: 720px) {
   .file-grid { grid-template-columns: 1fr; }
   .container { padding-left: 12px; padding-right: 12px; }
   .file-meta .uploader { display: none; }
+
+  /* Below 720px, swap the always-visible inline buttons for the 3-dot
+     overflow menu — same pattern as the old Bootstrap UI's btn-group vs.
+     mobile-dropdown split. Desktop keeps direct one-tap buttons since
+     there's plenty of row width; mobile trades that for compactness. */
+  .file-actions-inline { display: none; }
+  .file-actions-dropdown { display: flex; }
+  .icon-btn { width: 38px; height: 38px; font-size: 1.05rem; }
+  .file-row { padding: 10px 8px; gap: 8px; }
+
+  /* Password-reveal toggle is used briefly but still needs a real target. */
+  .input-wrap .reveal { width: 36px; height: 36px; }
+
+  /* Modal shouldn't run edge-to-edge on a phone. */
+  .modal-dialog { margin: 12px; }
+  .modal-dialog-centered { min-height: calc(100% - 24px); }
+
+  /* Upload bar and search bar were only wrapping their overflow item below
+     420px, which left one element (button, or checkbox) floating alone on
+     its own line, left-aligned — reads as "off-center" on anything between
+     a small and mid-size phone. Stack everything full-width instead so the
+     row is always visually balanced, at any width under 720px. */
+  .upload-bar, .search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .upload-bar .file-field,
+  .upload-bar .public-toggle,
+  .upload-bar .btn,
+  .search-bar .field,
+  .search-bar .btn {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+  .upload-bar .public-toggle { justify-content: center; }
+}
+
+/* Phone: header needs to actively shed content, not just shrink it —
+   there isn't room for everything at full size. */
+@media (max-width: 420px) {
+  .user-menu-btn #navUsername { display: none; }
+  .user-menu-btn { padding: 3px 8px; }
+  .brand span:last-child { font-size: 0.88rem; }
 }
 
 .page-pad { margin-top: 12px; }

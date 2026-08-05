@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"path"
@@ -9,7 +11,7 @@ import (
 	"strings"
 )
 
-func ResolveFileNameConflict(userID, originalName string, isShared bool, db *sql.DB) (string, error) {
+func ResolveFileNameConflict(userID, originalName string, isPublic bool, db *sql.DB) (string, error) {
 	// Split name and extension
 	ext := filepath.Ext(originalName)
 	base := strings.TrimSuffix(originalName, ext)
@@ -22,12 +24,12 @@ func ResolveFileNameConflict(userID, originalName string, isShared bool, db *sql
 		var stmt string
 		var err error
 
-		// If shared then only check for filename to resolve conflict otherwise also consider user
-		if isShared {
-			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND is_shared = 1)`
+		// If public then only check for filename to resolve conflict otherwise also consider user
+		if isPublic {
+			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND is_public = 1)`
 			err = db.QueryRow(stmt, finalname).Scan(&exists)
 		} else {
-			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = 0)`
+			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_public = 0)`
 			err = db.QueryRow(stmt, finalname, userID).Scan(&exists)
 		}
 
@@ -128,4 +130,15 @@ func GetUsernameByID(id string, db *sql.DB) (string, error) {
 	}
 
 	return username, nil
+}
+
+func GenerateShareToken() (string, error) {
+	b := make([]byte, 16) // 16 bytes = 24 characters URL-safe string
+
+	if _, err := rand.Read(b); err != nil {
+		Error.Printf("failed to generate share token: %v", err)
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

@@ -31,7 +31,7 @@ func seedPrivateFile(t *testing.T, ctx *TestContext) (int64, string) {
 		t.Fatalf("write file: %v", err)
 	}
 	res, err := ctx.DB.Exec(
-		`INSERT INTO metadata (user_id, filename, size, path, is_shared) VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO metadata (user_id, filename, size, path, is_public) VALUES (?, ?, ?, ?, ?)`,
 		"test-id", "secret.txt", 10, path, false)
 	if err != nil {
 		t.Fatalf("insert metadata: %v", err)

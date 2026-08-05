@@ -1,5 +1,9 @@
 # 📦 CloudBoxIO
 
+![Go Version](https://img.shields.io/github/go-mod/go-version/AumSahayata/cloudboxio)
+![Latest Release](https://img.shields.io/github/v/release/AumSahayata/cloudboxio)
+![License](https://img.shields.io/github/license/AumSahayata/cloudboxio)
+
 > A lightweight, self-hosted file storage and sharing server built with Go and Fiber.
 
 CloudBoxIO allows users to securely upload, share, and manage files with JWT-based authentication and an optional minimal UI. Built for simplicity and portability, it runs as a single binary and stores data using SQLite.
@@ -10,7 +14,7 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 
 - 🔐 User authentication and authorization using JWT
 - 📁 Upload, list, and download personal files
-- 🌐 Shared file support (public listing)
+- 🌐 Public file support
 - 🗑️ File deletion
 - 🧠 Filename conflict resolution (e.g., file(1).txt)
 - 📊 SQLite-based metadata and user storage

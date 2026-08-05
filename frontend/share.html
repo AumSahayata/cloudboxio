@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudBoxIO - Shared File</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f5f5f5;
+        }
+
+        .share-card {
+            max-width: 600px;
+            margin: 80px auto;
+        }
+
+        #loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        #passwordSection {
+            display: none;
+        }
+
+        #error {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="card shadow share-card">
+
+            <div class="card-body">
+
+                <h2 class="text-center mb-4">
+                    ☁️ CloudBoxIO
+                </h2>
+
+                <div id="loading">
+                    Loading...
+                </div>
+
+                <div id="error" class="alert alert-danger"></div>
+
+                <div id="content" style="display:none;">
+
+                    <h4 id="filename"></h4>
+
+                    <hr>
+
+                    <p><strong>Size:</strong> <span id="filesize"></span></p>
+
+                    <form id="downloadForm">
+
+                        <div id="passwordSection">
+                            <label class="form-label" for="password">Password</label>
+                            <input id="password" name="password" type="password" class="form-control">
+                        </div>
+
+                        <button id="downloadBtn" type="submit" class="btn btn-primary w-100 mt-3">
+                            Download
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="share.js"></script>
+
+</body>
+
+</html>

@@ -42,6 +42,13 @@ function formatDate(timestamp) {
     });
 }
 
+// Helper function to truncate text
+function truncateText(text, maxLength = 35) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
 function iconForFilename(name) {
     const ext = (name.split('.').pop() || '').toLowerCase();
     const map = {
@@ -123,20 +130,57 @@ function createFileRow(file) {
     const actions = document.createElement('div');
     actions.className = 'file-actions';
 
+    // Desktop: full inline buttons (hidden below 720px via CSS)
+    const inline = document.createElement('div');
+    inline.className = 'file-actions-inline';
+
     const dlBtn = document.createElement('button');
     dlBtn.className = 'icon-btn';
     dlBtn.title = 'Download';
     dlBtn.innerHTML = '<i class="bi bi-download"></i>';
     dlBtn.addEventListener('click', () => downloadFile(fileId, filename));
-    actions.appendChild(dlBtn);
+    inline.appendChild(dlBtn);
+
+    // Share button lands here later — another .icon-btn, same pattern.
 
     const delBtn = document.createElement('button');
     delBtn.className = 'icon-btn danger';
     delBtn.title = 'Delete';
     delBtn.innerHTML = '<i class="bi bi-trash3"></i>';
     delBtn.addEventListener('click', () => deleteFile(fileId));
-    actions.appendChild(delBtn);
+    inline.appendChild(delBtn);
 
+    actions.appendChild(inline);
+
+    // Mobile: 3-dot overflow menu (hidden at 720px and above via CSS)
+    const mobileActions = document.createElement('div');
+    mobileActions.className = 'file-actions-dropdown dropdown';
+
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'icon-btn dropdown-toggle';
+    moreBtn.title = 'Actions';
+    moreBtn.innerHTML = '<i class="bi bi-three-dots-vertical"></i>';
+    mobileActions.appendChild(moreBtn);
+
+    const menu = document.createElement('div');
+    menu.className = 'dropdown-menu dropdown-menu-end';
+
+    const dlItem = document.createElement('button');
+    dlItem.className = 'dropdown-item';
+    dlItem.innerHTML = '<i class="bi bi-download"></i>Download';
+    dlItem.addEventListener('click', () => downloadFile(fileId, filename));
+    menu.appendChild(dlItem);
+
+    // Share action lands here later — same dropdown, one more dropdown-item.
+
+    const delItem = document.createElement('button');
+    delItem.className = 'dropdown-item text-danger';
+    delItem.innerHTML = '<i class="bi bi-trash3"></i>Delete';
+    delItem.addEventListener('click', () => deleteFile(fileId));
+    menu.appendChild(delItem);
+
+    mobileActions.appendChild(menu);
+    actions.appendChild(mobileActions);
     row.appendChild(actions);
     return row;
 }
@@ -190,12 +234,12 @@ async function loadFiles() {
         displayFiles(myData, document.getElementById('myFilesList'),
             document.getElementById('myFilesCount'));
 
-        const shResp = await fetch(`${API_URL}/files?shared=true`, { headers: authHeaders() });
+        const shResp = await fetch(`${API_URL}/files?public=true`, { headers: authHeaders() });
         handleApiResponse(shResp);
         const shData = await shResp.json();
         if (!shResp.ok) throw new Error(shData.error || 'Failed to fetch public files');
-        displayFiles(shData, document.getElementById('sharedFilesList'),
-            document.getElementById('sharedFilesCount'));
+        displayFiles(shData, document.getElementById('publicFilesList'),
+            document.getElementById('publicFilesCount'));
     } catch (error) {
         console.error('Error loading files:', error);
     } finally {
@@ -258,7 +302,7 @@ function logout() {
     localStorage.removeItem('token');
 
     const myFiles = document.getElementById('myFilesList');
-    const shFiles = document.getElementById('sharedFilesList');
+    const shFiles = document.getElementById('publicFilesList');
     if (myFiles) myFiles.textContent = '';
     if (shFiles) shFiles.textContent = '';
 
@@ -267,10 +311,7 @@ function logout() {
         form.querySelectorAll('input').forEach(i => i.classList.remove('is-invalid', 'is-valid'));
     });
 
-    document.querySelectorAll('.modal').forEach(modal => {
-        const inst = bootstrap.Modal.getInstance(modal);
-        if (inst) inst.hide();
-    });
+    document.querySelectorAll('.modal.open').forEach(modal => closeModal(modal.id));
 
     showUnauthenticatedUI();
     showLoginModal();
@@ -343,8 +384,7 @@ function showUnauthenticatedUI() {
 }
 
 function showLoginModal() {
-    const el = document.getElementById('loginModal');
-    if (el) new bootstrap.Modal(el).show();
+    if (document.getElementById('loginModal')) openModal('loginModal');
 }
 
 function checkAuth() {
@@ -485,8 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const files = fileInput.files;
             if (files.length === 0) return;
-            const isShared = document.getElementById('sharedCheckbox')?.checked || false;
-            const uploadUrl = `${API_URL}/upload${isShared ? '?shared=true' : ''}`;
+            const isPublic = document.getElementById('publicCheckbox')?.checked || false;
+            const uploadUrl = `${API_URL}/upload${isPublic ? '?public=true' : ''}`;
 
             showLoading('Uploading…');
             let ok = true;
@@ -601,12 +641,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayFiles(myData, document.getElementById('myFilesList'),
                     document.getElementById('myFilesCount'));
 
-                const shResp = await fetch(`${API_URL}/files?shared=true&keyword=${encodeURIComponent(keyword)}`, { headers: authHeaders() });
+                const shResp = await fetch(`${API_URL}/files?public=true&keyword=${encodeURIComponent(keyword)}`, { headers: authHeaders() });
                 handleApiResponse(shResp);
                 const shData = await shResp.json();
                 if (!shResp.ok) throw new Error(shData.error || 'Search failed');
-                displayFiles(shData, document.getElementById('sharedFilesList'),
-                    document.getElementById('sharedFilesCount'));
+                displayFiles(shData, document.getElementById('publicFilesList'),
+                    document.getElementById('publicFilesCount'));
             } catch (error) {
                 console.error('Error searching files:', error);
                 alert(error.message || 'Error searching files');
@@ -670,16 +710,16 @@ function initModals() {
 
 /* ---------------------------------------------- dropdown (no bootstrap) */
 function initDropdowns() {
-    document.querySelectorAll('.dropdown-toggle').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    document.addEventListener('click', (e) => {
+        const toggle = e.target.closest('.dropdown-toggle');
+        if (toggle) {
             e.stopPropagation();
-            const menu = btn.nextElementSibling;
+            const menu = toggle.nextElementSibling;
             const isOpen = menu.classList.contains('show');
             document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
             if (!isOpen) menu.classList.add('show');
-        });
-    });
-    document.addEventListener('click', () => {
+            return;
+        }
         document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
     });
 }

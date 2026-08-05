@@ -87,7 +87,7 @@ func TestResolveFileNameConflict(t *testing.T) {
 	db := tests.SetupTestDB(t)
 	defer db.Close()
 
-	_, err := db.Exec(`INSERT INTO metadata (user_id, filename, path, is_shared) VALUES (?, ?, ?, ?)`,
+	_, err := db.Exec(`INSERT INTO metadata (user_id, filename, path, is_public) VALUES (?, ?, ?, ?)`,
 		"user-1", "report.pdf", "uploads/user-1/report.pdf", false)
 	if err != nil {
 		t.Fatalf("failed to seed metadata: %v", err)

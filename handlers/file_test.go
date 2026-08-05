@@ -23,7 +23,7 @@ func TestUploadFiles(t *testing.T) {
 
 	handler := NewFileHandler(ctx.DB)
 	ctx.App.Use(internal.JWTProtected())
-	ctx.App.Post("/upload:shared?", handler.UploadFile)
+	ctx.App.Post("/upload:public?", handler.UploadFile)
 
 	// Create multipart body
 	var body bytes.Buffer
@@ -52,7 +52,7 @@ func TestUploadFiles(t *testing.T) {
 	writer.Close()
 
 	// Create request
-	uploadReq := httptest.NewRequest("POST", "/upload?shared=false", &body)
+	uploadReq := httptest.NewRequest("POST", "/upload?public=false", &body)
 	uploadReq.Header.Set("Content-Type", writer.FormDataContentType())
 	uploadReq.Header.Set("Authorization", "Bearer "+ctx.Token)
 
@@ -92,13 +92,13 @@ func TestUploadFiles(t *testing.T) {
 	}
 }
 
-func TestSharedUploadFiles(t *testing.T) {
+func TestPublicUploadFiles(t *testing.T) {
 	ctx := SetupTestContext(t)
 	tests.SetAdminSetupFlag(ctx.DB, true)
 
 	handler := NewFileHandler(ctx.DB)
 	ctx.App.Use(internal.JWTProtected())
-	ctx.App.Post("/upload:shared?", handler.UploadFile)
+	ctx.App.Post("/upload:public?", handler.UploadFile)
 
 	// Create multipart body
 	var body bytes.Buffer
@@ -127,7 +127,7 @@ func TestSharedUploadFiles(t *testing.T) {
 	writer.Close()
 
 	// Create request
-	uploadReq := httptest.NewRequest("POST", "/upload?shared=true", &body)
+	uploadReq := httptest.NewRequest("POST", "/upload?public=true", &body)
 	uploadReq.Header.Set("Content-Type", writer.FormDataContentType())
 	uploadReq.Header.Set("Authorization", "Bearer "+ctx.Token)
 
@@ -138,14 +138,14 @@ func TestSharedUploadFiles(t *testing.T) {
 
 	// Check if files were saved
 	for _, filename := range filenames {
-		expectedPath := filepath.Join(ctx.TempDir, "shared", filename)
+		expectedPath := filepath.Join(ctx.TempDir, "public", filename)
 		if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
 			t.Fatalf("expected file to be saved at %s", expectedPath)
 		}
 	}
 
 	// Validate DB records
-	rows, err := ctx.DB.Query("SELECT filename FROM metadata WHERE user_id = ? AND is_shared = ?", "test-id", true)
+	rows, err := ctx.DB.Query("SELECT filename FROM metadata WHERE user_id = ? AND is_public = ?", "test-id", true)
 	if err != nil {
 		t.Fatal("failed to query metadata:", err)
 	}
@@ -178,18 +178,18 @@ func TestListMyFiles(t *testing.T) {
 		size       int
 		path       string
 		uploadedAt string
-		isShared   bool
+		isPublic   bool
 	}{
 		{1, "file1.txt", 123, "/path/my-files/file1.txt", "2025-06-01 10:00:00", false},
 		{2, "file2.txt", 456, "/path/my-files/file2.txt", "2025-06-02 11:00:00", false},
-		{3, "shared.txt", 789, "/path/shared-files/shared.txt", "2025-06-03 12:00:00", true}, // should be excluded
+		{3, "public.txt", 789, "/path/public-files/public.txt", "2025-06-03 12:00:00", true}, // should be excluded
 	}
 
 	for _, f := range files {
 		_, err := ctx.DB.Exec(`
-			INSERT INTO metadata (id, user_id, filename, size, path, is_shared, uploaded_at)
+			INSERT INTO metadata (id, user_id, filename, size, path, is_public, uploaded_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			f.id, "test-id", f.filename, f.size, f.path, f.isShared, f.uploadedAt)
+			f.id, "test-id", f.filename, f.size, f.path, f.isPublic, f.uploadedAt)
 		if err != nil {
 			t.Fatalf("failed to insert file %s: %v", f.filename, err)
 		}
@@ -198,10 +198,10 @@ func TestListMyFiles(t *testing.T) {
 	// Register handler
 	handler := NewFileHandler(ctx.DB)
 	ctx.App.Use(internal.JWTProtected())
-	ctx.App.Get("/files:shared?", handler.ListFiles)
+	ctx.App.Get("/files:public?", handler.ListFiles)
 
 	// Make request
-	req := httptest.NewRequest("GET", "/files?shared=false", nil)
+	req := httptest.NewRequest("GET", "/files?public=false", nil)
 	req.Header.Set("Authorization", "Bearer "+ctx.Token)
 
 	resp, err := ctx.App.Test(req, -1)
@@ -244,7 +244,7 @@ func TestListMyFiles(t *testing.T) {
 	}
 }
 
-func TestListSharedFiles(t *testing.T) {
+func TestListPublicFiles(t *testing.T) {
 	ctx := SetupTestContext(t)
 	tests.SetAdminSetupFlag(ctx.DB, true)
 
@@ -255,18 +255,18 @@ func TestListSharedFiles(t *testing.T) {
 		size       int
 		path       string
 		uploadedAt string
-		isShared   bool
+		isPublic   bool
 	}{
 		{1, "file1.txt", 123, "/path/my-files/file1.txt", "2025-06-01 10:00:00", false}, // should be excluded
 		{2, "file2.txt", 456, "/path/my-files/file2.txt", "2025-06-02 11:00:00", false}, // should be excluded
-		{3, "shared.txt", 789, "/path/shared/shared.txt", "2025-06-03 12:00:00", true},
+		{3, "public.txt", 789, "/path/public-files/public.txt", "2025-06-03 12:00:00", true},
 	}
 
 	for _, f := range files {
 		_, err := ctx.DB.Exec(`
-			INSERT INTO metadata (id, user_id, filename, size, path, is_shared, uploaded_at)
+			INSERT INTO metadata (id, user_id, filename, size, path, is_public, uploaded_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			f.id, "test-id", f.filename, f.size, f.path, f.isShared, f.uploadedAt)
+			f.id, "test-id", f.filename, f.size, f.path, f.isPublic, f.uploadedAt)
 		if err != nil {
 			t.Fatalf("failed to insert file %s: %v", f.filename, err)
 		}
@@ -275,10 +275,10 @@ func TestListSharedFiles(t *testing.T) {
 	// Register handler
 	handler := NewFileHandler(ctx.DB)
 	ctx.App.Use(internal.JWTProtected())
-	ctx.App.Get("/files:shared?", handler.ListFiles)
+	ctx.App.Get("/files:public?", handler.ListFiles)
 
 	// Make request
-	req := httptest.NewRequest("GET", "/files?shared=true", nil)
+	req := httptest.NewRequest("GET", "/files?public=true", nil)
 	req.Header.Set("Authorization", "Bearer "+ctx.Token)
 
 	resp, err := ctx.App.Test(req, -1)
@@ -302,7 +302,7 @@ func TestListSharedFiles(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	expectedFiles := []string{"shared.txt"}
+	expectedFiles := []string{"public.txt"}
 	receivedFiles := make(map[string]bool)
 
 	// Check expected files
@@ -339,7 +339,7 @@ func TestListSharedFiles(t *testing.T) {
 // 		t.Fatal("failed to write temp file:", err)
 // 	}
 
-// 	_, err = ctx.DB.Exec(`INSERT INTO metadata (id, user_id, filename, size, path, is_shared, uploaded_at) VALUES (?,?,?,?,?,?,?)`, 1, "test-id", "test.txt", 1000, tempFilepath, false, "today")
+// 	_, err = ctx.DB.Exec(`INSERT INTO metadata (id, user_id, filename, size, path, is_public, uploaded_at) VALUES (?,?,?,?,?,?,?)`, 1, "test-id", "test.txt", 1000, tempFilepath, false, "today")
 // 	if err != nil {
 // 		t.Fatal("failed to insert temp file record in DB:", err)
 // 	}
@@ -392,7 +392,7 @@ func TestDeleteFile(t *testing.T) {
 		t.Fatal("failed to write temp file:", err)
 	}
 
-	_, err = ctx.DB.Exec(`INSERT INTO metadata (id, user_id, filename, size, path, is_shared, uploaded_at) VALUES (?,?,?,?,?,?,?)`, 1, "test-id", "test.txt", 1000, tempFilepath, false, "today")
+	_, err = ctx.DB.Exec(`INSERT INTO metadata (id, user_id, filename, size, path, is_public, uploaded_at) VALUES (?,?,?,?,?,?,?)`, 1, "test-id", "test.txt", 1000, tempFilepath, false, "today")
 	if err != nil {
 		t.Fatal("failed to insert temp file record in DB:", err)
 	}

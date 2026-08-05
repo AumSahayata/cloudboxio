@@ -20,7 +20,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
-const Version = "1.4.2"
+const Version = "2.0.0"
 
 //go:embed frontend/*
 var embeddedFiles embed.FS
@@ -88,15 +88,21 @@ func main() {
 	api := app.Group("/api")
 	//Public routes
 	api.Post("/login", authHandler.Login)
+	api.Get("/s/:token", fileHandler.ServeSharePage)
+	api.Get("/share/:token", fileHandler.GetSharedInfo)
+	api.Post("/share/:token/download", fileHandler.DownloadSharedFile)
 
 	//Protected routes
 	api.Use(internal.JWTProtected())
 
 	// Files endpoint
-	api.Post("/upload:shared?", fileHandler.UploadFile)
-	api.Get("/files:keyword?:shared?", fileHandler.ListFiles)
+	api.Post("/upload:public?", fileHandler.UploadFile)
+	api.Get("/files/shares", fileHandler.ListMySharedFiles)
+	api.Delete("/files/share/:id", fileHandler.DeactivateShare)
+	api.Get("/files:keyword?:public?", fileHandler.ListFiles)
 	api.Get("/file/:fileid", fileHandler.DownloadFile)
 	api.Delete("/file/:fileid", fileHandler.DeleteFile)
+	api.Post("/file/:fileid/share", fileHandler.ShareFile)
 
 	// User endpoints
 	api.Post("/signup", authHandler.SignUp)

@@ -73,7 +73,7 @@
                 <h1>CloudBoxIO</h1>
                 <p>Self-hosted file storage. Sign in to continue.</p>
                 <button class="btn btn-primary" data-modal-target="loginModal">
-                    <i class="bi bi-box-arrow-in-right"></i>Log in
+                    <i class="bi bi-box-arrow-in-right"></i> Log in
                 </button>
             </div>
         </div>
@@ -85,8 +85,8 @@
                 <div class="panel-title"><i class="bi bi-upload"></i> Upload</div>
                 <form id="uploadForm" class="upload-bar">
                     <input type="file" class="field file-field" id="fileInput" multiple>
-                    <label class="shared-toggle">
-                        <input type="checkbox" id="sharedCheckbox"> Make public
+                    <label class="public-toggle">
+                        <input type="checkbox" id="publicCheckbox"> Make public
                     </label>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-cloud-arrow-up"></i>Upload
@@ -113,9 +113,9 @@
                 <div class="panel panel-pad">
                     <div class="panel-title">
                         <i class="bi bi-globe2"></i> Public files
-                        <span class="count" id="sharedFilesCount">0</span>
+                        <span class="count" id="publicFilesCount">0</span>
                     </div>
-                    <div id="sharedFilesList" class="file-list"></div>
+                    <div id="publicFilesList" class="file-list"></div>
                 </div>
             </div>
         </div>
