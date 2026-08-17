@@ -141,7 +141,12 @@ function createFileRow(file) {
     dlBtn.addEventListener('click', () => downloadFile(fileId, filename));
     inline.appendChild(dlBtn);
 
-    // Share button lands here later — another .icon-btn, same pattern.
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'icon-btn';
+    shareBtn.title = 'Share';
+    shareBtn.innerHTML = '<i class="bi bi-share"></i>';
+    shareBtn.addEventListener('click', () => openShareModal(fileId, filename));
+    inline.appendChild(shareBtn);
 
     const delBtn = document.createElement('button');
     delBtn.className = 'icon-btn danger';
@@ -171,7 +176,11 @@ function createFileRow(file) {
     dlItem.addEventListener('click', () => downloadFile(fileId, filename));
     menu.appendChild(dlItem);
 
-    // Share action lands here later — same dropdown, one more dropdown-item.
+    const shareItem = document.createElement('button');
+    shareItem.className = 'dropdown-item';
+    shareItem.innerHTML = '<i class="bi bi-share"></i>Share';
+    shareItem.addEventListener('click', () => openShareModal(fileId, filename));
+    menu.appendChild(shareItem);
 
     const delItem = document.createElement('button');
     delItem.className = 'dropdown-item text-danger';
@@ -357,7 +366,7 @@ function displayUserDetails(userData) {
             navUsername.appendChild(badge);
         }
     }
-    const adminEls = ['createUserNavItem', 'createUserDivider', 'showUsersPanelNavItem'];
+    const adminEls = ['createUserNavItem', 'createUserDivider', 'showUsersPanelNavItem', 'baseUrlNavItem'];
     adminEls.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = userData.is_admin ? 'block' : 'none';
@@ -460,6 +469,283 @@ async function deleteUser(userId, btn) {
     } finally {
         hideLoading();
         btn.disabled = false;
+    }
+}
+
+/* ------------------------------------------------------------- sharing
+   Matches the real Fiber handlers:
+     POST   /api/file/:fileid/share   { expires_in_hours?, password?, max_downloads? }
+            -> 201 { url }                          (nothing else is echoed back)
+     GET    /api/files/shares
+            -> [{ ID, FileID, FileName, Size, ExpiresAt: {String, Valid},
+                   DownloadCount, MaxDownloads, URL }]   (no json tags -> Go field names)
+     DELETE /api/files/share/:id      (numeric share row id, NOT the token)
+   Note: the list response has no password_required field, so a "password
+   protected" badge can't be shown from that endpoint as it stands.
+*/
+let currentShareFileId = null;
+
+function openShareModal(fileId, filename) {
+    currentShareFileId = fileId;
+    const nameEl = document.getElementById('shareModalFilename');
+    if (nameEl) nameEl.textContent = filename || '';
+
+    const form = document.getElementById('createShareForm');
+    const result = document.getElementById('shareResult');
+    if (form) { form.reset(); form.style.display = 'block'; }
+    if (result) result.style.display = 'none';
+
+    openModal('shareModal');
+}
+
+// expiresAt now comes back as a plain ISO string or null (backend fixed to
+// stop leaking the raw sql.NullString wrapper).
+function formatExpiry(expiresAt) {
+    if (!expiresAt) return 'Never expires';
+    const d = new Date(expiresAt);
+    if (isNaN(d)) return 'Never expires';
+    const expired = d.getTime() < Date.now();
+    return (expired ? 'Expired ' : 'Expires ') + d.toLocaleDateString(undefined, {
+        year: 'numeric', month: 'short', day: '2-digit'
+    });
+}
+
+function initShareModal() {
+    togglePasswordVisibility('sharePassword', 'toggleSharePassword');
+
+    const createShareForm = document.getElementById('createShareForm');
+    if (createShareForm) {
+        createShareForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentShareFileId) return;
+
+            const password = document.getElementById('sharePassword').value;
+            const expiryDays = document.getElementById('shareExpiry').value;
+            const maxDownloadsRaw = document.getElementById('shareMaxDownloads').value;
+            const btn = document.getElementById('createShareBtn');
+
+            const body = {};
+            if (password) body.password = password;
+            if (expiryDays) body.expires_in_hours = Number(expiryDays) * 24;
+            if (maxDownloadsRaw) body.max_downloads = Number(maxDownloadsRaw);
+
+            btn.disabled = true;
+            showLoading('Creating share link…');
+            try {
+                const response = await fetch(`${API_URL}/file/${encodeURIComponent(currentShareFileId)}/share`, {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify(body)
+                });
+                handleApiResponse(response);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to create share link');
+
+                // The API only returns { url } on creation — everything else in
+                // this summary reflects what we just sent, not a server echo.
+                document.getElementById('shareResultLink').value = data.url || '';
+                const expiryText = expiryDays ? `Expires in ${expiryDays} day${expiryDays === '1' ? '' : 's'}` : 'Never expires';
+                const downloadsText = maxDownloadsRaw ? `Max ${maxDownloadsRaw} download${maxDownloadsRaw === '1' ? '' : 's'}` : 'Unlimited downloads';
+                document.getElementById('shareResultMeta').textContent =
+                    (password ? 'Password protected · ' : 'No password · ') + expiryText + ' · ' + downloadsText;
+                document.getElementById('shareResult').style.display = 'block';
+                createShareForm.style.display = 'none';
+            } catch (error) {
+                console.error('Create share error:', error);
+                alert(error.message || 'Error creating share link');
+            } finally {
+                btn.disabled = false;
+                hideLoading();
+            }
+        });
+    }
+
+    const copyBtn = document.getElementById('copyShareLink');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const input = document.getElementById('shareResultLink');
+            if (!input || !input.value) return;
+            try {
+                await navigator.clipboard.writeText(input.value);
+                copyBtn.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(() => { copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 1500);
+            } catch (_) {
+                input.select();
+                document.execCommand('copy');
+            }
+        });
+    }
+
+    const manageSharesModal = document.getElementById('manageSharesModal');
+    if (manageSharesModal) {
+        manageSharesModal.addEventListener('modal:show', fetchMyShares);
+    }
+
+    const baseUrlModal = document.getElementById('baseUrlModal');
+    if (baseUrlModal) {
+        baseUrlModal.addEventListener('modal:show', fetchBaseUrl);
+    }
+
+    const baseUrlForm = document.getElementById('baseUrlForm');
+    if (baseUrlForm) {
+        baseUrlForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('baseUrlInput');
+            const value = input.value.trim();
+            showLoading('Saving…');
+            try {
+                const response = await fetch(`${API_URL}/settings/base-url`, {
+                    method: 'PUT',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ base_url: value })
+                });
+                handleApiResponse(response);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to save base URL');
+                input.value = data.base_url || '';
+                showLoading('Saved');
+                setTimeout(hideLoading, 1200);
+            } catch (error) {
+                console.error('Save base URL error:', error);
+                alert(error.message || 'Error saving base URL');
+                hideLoading();
+            }
+        });
+    }
+}
+
+async function fetchBaseUrl() {
+    const input = document.getElementById('baseUrlInput');
+    if (!input) return;
+    try {
+        const response = await fetch(`${API_URL}/settings/base-url`, { headers: authHeaders() });
+        handleApiResponse(response);
+        if (!response.ok) throw new Error('Failed to load base URL');
+        const data = await response.json();
+        input.value = data.base_url || '';
+    } catch (error) {
+        console.error('Error fetching base URL:', error);
+    }
+}
+
+async function fetchMyShares() {
+    try {
+        showLoading('Loading shared links…');
+        const response = await fetch(`${API_URL}/files/shares`, { headers: authHeaders() });
+        handleApiResponse(response);
+        if (!response.ok) throw new Error('Failed to fetch shared links');
+        renderSharesPanel(await response.json());
+    } catch (error) {
+        console.error('Error fetching shares:', error);
+        alert(error.message || 'Failed to load shared links');
+    } finally {
+        hideLoading();
+    }
+}
+
+function renderSharesPanel(shares) {
+    const list = document.getElementById('sharesList');
+    if (!list) return;
+    list.textContent = '';
+
+    const items = Array.isArray(shares) ? shares : [];
+    if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-row';
+        empty.textContent = 'No shared links yet';
+        list.appendChild(empty);
+        return;
+    }
+
+    items.forEach(share => {
+        const row = document.createElement('div');
+        row.className = 'share-row';
+
+        const main = document.createElement('div');
+        main.className = 'share-main';
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'share-filename';
+        nameEl.textContent = share.filename || 'Untitled file';
+        nameEl.title = share.filename || '';
+        main.appendChild(nameEl);
+
+        const meta = document.createElement('div');
+        meta.className = 'share-meta';
+
+        const pwEl = document.createElement('span');
+        if (share.password_required) {
+            pwEl.className = 'badge-locked';
+            pwEl.innerHTML = '<i class="bi bi-lock-fill"></i>Password required';
+        } else {
+            pwEl.innerHTML = '<i class="bi bi-unlock"></i>No password';
+        }
+        meta.appendChild(pwEl);
+        meta.appendChild(makeSep());
+
+        const expiryEl = document.createElement('span');
+        const isExpired = share.expires_at && new Date(share.expires_at).getTime() < Date.now();
+        expiryEl.className = isExpired ? 'badge-expired' : '';
+        expiryEl.textContent = formatExpiry(share.expires_at);
+        meta.appendChild(expiryEl);
+        meta.appendChild(makeSep());
+
+        const dlEl = document.createElement('span');
+        const downloadCount = share.download_count || 0;
+        dlEl.textContent = share.max_downloads > 0
+            ? `${downloadCount} / ${share.max_downloads} downloads`
+            : `${downloadCount} downloads (unlimited)`;
+        meta.appendChild(dlEl);
+
+        main.appendChild(meta);
+        row.appendChild(main);
+
+        const actions = document.createElement('div');
+        actions.className = 'share-actions';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'icon-btn';
+        copyBtn.title = 'Copy link';
+        copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(share.url || '');
+                copyBtn.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(() => { copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 1500);
+            } catch (_) { /* clipboard unavailable, ignore */ }
+        });
+        actions.appendChild(copyBtn);
+
+        const revokeBtn = document.createElement('button');
+        revokeBtn.className = 'icon-btn danger';
+        revokeBtn.title = 'Revoke';
+        revokeBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+        revokeBtn.addEventListener('click', () => revokeShare(share.id, row));
+        actions.appendChild(revokeBtn);
+
+        row.appendChild(actions);
+        list.appendChild(row);
+    });
+}
+
+async function revokeShare(shareId, rowEl) {
+    if (shareId === undefined || shareId === null) return;
+    if (!confirm('Revoke this share link? Anyone with the link will lose access.')) return;
+    showLoading('Revoking…');
+    try {
+        const response = await fetch(`${API_URL}/files/share/${encodeURIComponent(shareId)}`, {
+            method: 'DELETE', headers: authHeaders()
+        });
+        handleApiResponse(response);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || 'Failed to revoke share link');
+        }
+        if (rowEl) rowEl.remove();
+    } catch (error) {
+        alert(error.message || 'Error revoking share link');
+    } finally {
+        hideLoading();
     }
 }
 
@@ -663,6 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
         usersModal.addEventListener('modal:show', fetchAllUsers);
     }
 
+    initShareModal();
     initModals();
     initDropdowns();
     checkAuth();

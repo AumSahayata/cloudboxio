@@ -248,13 +248,21 @@ func (h *FileHandler) DeleteFile(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{"message": "File deleted successfully"})
 }
 
-
 func (h *FileHandler) ShareFile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
+	baseURL, err := internal.GetSetting(h.DB, "base_url")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve base URL setting"})
+	}
+
+	if baseURL == "" {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Base URL is not set. Please contact the administrator."})
+	}
+
 	// Get file name from the endpoint parameters using request context
 	fileID := c.Params("fileid")
-	fileID, err := internal.CleanParam(fileID)
+	fileID, err = internal.CleanParam(fileID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "File ID provided is not proper"})
 	}
@@ -310,7 +318,7 @@ func (h *FileHandler) ShareFile(c *fiber.Ctx) error {
 	internal.FileOps.Printf("User [%s] shared file: %s", userID, fileID)
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"url": fmt.Sprintf("%s/api/s/%s", os.Getenv("BASE_URL"), token),
+		"url": fmt.Sprintf("%s/api/s/%s", baseURL, token),
 	})
 }
 
@@ -484,9 +492,14 @@ func (h *FileHandler) DownloadSharedFile(c *fiber.Ctx) error {
 func (h *FileHandler) ListMySharedFiles(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 
+	baseURL, err := internal.GetSetting(h.DB, "base_url")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve base URL setting"})
+	}
+
 	rows, err := h.DB.Query(`
         SELECT s.id, s.file_id, m.filename, m.size, s.expires_at,
-        s.download_count, s.max_downloads, s.token
+        s.download_count, s.max_downloads, s.token, s.password_hash
 		FROM shares AS s
 		JOIN metadata AS m ON s.file_id = m.id
 		WHERE s.is_active = TRUE
@@ -505,12 +518,18 @@ func (h *FileHandler) ListMySharedFiles(c *fiber.Ctx) error {
 
 		var file models.SharedFile
 		var token string
+		var expiresAt sql.NullString
+		var passwordHash sql.NullString
 
-		if err := rows.Scan(&file.ID, &file.FileID, &file.FileName, &file.Size, &file.ExpiresAt, &file.DownloadCount, &file.MaxDownloads, &token); err != nil {
+		if err := rows.Scan(&file.ID, &file.FileID, &file.FileName, &file.Size, &expiresAt, &file.DownloadCount, &file.MaxDownloads, &token, &passwordHash); err != nil {
 			continue
 		}
 
-		file.URL = fmt.Sprintf("%s/api/s/%s", os.Getenv("BASE_URL"), token)
+		if expiresAt.Valid {
+			file.ExpiresAt = &expiresAt.String
+		}
+		file.PasswordRequired = passwordHash.Valid && passwordHash.String != ""
+		file.URL = fmt.Sprintf("%s/api/s/%s", baseURL, token)
 
 		files = append(files, file)
 	}

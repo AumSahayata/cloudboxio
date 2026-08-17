@@ -27,12 +27,13 @@ type ShareFileMetadata struct {
 }
 
 type SharedFile struct {
-	ID            int
-	FileID        string
-	FileName      string
-	Size          int64
-	ExpiresAt     sql.NullString
-	DownloadCount int
-	MaxDownloads  int
-	URL           string
+	ID               int     `json:"id"`
+	FileID           string  `json:"file_id"`
+	FileName         string  `json:"filename"`
+	Size             int64   `json:"size"`
+	ExpiresAt        *string `json:"expires_at"`
+	DownloadCount    int     `json:"download_count"`
+	MaxDownloads     int     `json:"max_downloads"`
+	PasswordRequired bool    `json:"password_required"`
+	URL              string  `json:"url"`
 }

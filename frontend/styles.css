@@ -434,6 +434,7 @@ input[type="file"].field::file-selector-button {
 
 /* ------------------------------------------------------- bootstrap modal */
 .modal-content {
+  width: 100%;
   background: var(--bg-elev);
   color: var(--text);
   border: 1px solid var(--border);
@@ -498,6 +499,34 @@ input[type="file"].field::file-selector-button {
 }
 .user-row:last-child { border-bottom: 0; }
 .user-row .uname { font-size: 0.86rem; }
+
+/* share result box (shown after creating a link) */
+.share-result {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* share list rows inside "Manage shares" modal */
+.share-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 10px 6px; border-bottom: 1px solid var(--border);
+}
+.share-row:last-child { border-bottom: 0; }
+.share-row .share-main { min-width: 0; flex: 1; }
+.share-row .share-filename {
+  font-size: 0.86rem; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.share-row .share-meta { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; display: flex; flex-wrap: wrap; align-items: center; }
+.share-row .share-meta .sep { margin: 0 6px; }
+.share-row .share-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.badge-locked, .badge-expired {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.72rem; padding: 1px 7px; border-radius: 999px;
+  background: var(--bg-subtle, rgba(120,120,120,.15)); color: var(--text-dim);
+}
+.badge-expired { color: #c0392b; }
 
 /* dropdown (bootstrap) theming */
 .dropdown-menu {

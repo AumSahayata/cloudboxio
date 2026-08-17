@@ -84,6 +84,7 @@ func main() {
 
 	authHandler := handlers.NewAuthHandler(database, internal.Info, internal.Error)
 	fileHandler := handlers.NewFileHandler(database)
+	settingsHandler := handlers.NewSettingsHandler(database)
 
 	api := app.Group("/api")
 	//Public routes
@@ -110,6 +111,10 @@ func main() {
 	api.Get("/user-info", authHandler.GetUserInfo)
 	api.Get("/users", authHandler.GetUsers)
 	api.Delete("/users/:id", authHandler.DeleteUser)
+
+	// Settings endpoints
+	api.Get("/settings/base-url", settingsHandler.GetBaseURL)
+	api.Put("/settings/base-url", settingsHandler.SetBaseURL)
 
 	// Create and hold own TCP listener (not using fiber's listener)
 	addr := ":" + os.Getenv("PORT")

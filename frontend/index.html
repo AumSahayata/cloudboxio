@@ -49,10 +49,20 @@
                         <i class="bi bi-people"></i>Manage users
                     </button>
                 </li>
+                <li id="baseUrlNavItem" style="display:none;">
+                    <button class="dropdown-item" data-modal-target="baseUrlModal">
+                        <i class="bi bi-globe"></i>Base URL
+                    </button>
+                </li>
                 <li id="createUserDivider" style="display:none;"><hr class="dropdown-divider"></li>
                 <li>
                     <button class="dropdown-item" data-modal-target="resetPasswordModal">
                         <i class="bi bi-key"></i>Reset password
+                    </button>
+                </li>
+                <li>
+                    <button class="dropdown-item" data-modal-target="manageSharesModal">
+                        <i class="bi bi-link-45deg"></i>Manage shares
                     </button>
                 </li>
                 <li><hr class="dropdown-divider"></li>
@@ -223,6 +233,94 @@
                 </div>
                 <div class="modal-body">
                     <div id="usersList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share file modal -->
+    <div class="modal" id="shareModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Share "<span id="shareModalFilename"></span>"</h5>
+                    <button type="button" class="btn-close" data-modal-dismiss></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createShareForm">
+                        <div class="form-row">
+                            <label for="shareExpiry" class="form-label">Link expires</label>
+                            <select class="field" id="shareExpiry">
+                                <option value="">Never</option>
+                                <option value="1">After 1 day</option>
+                                <option value="7" selected>After 7 days</option>
+                                <option value="30">After 30 days</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="sharePassword" class="form-label">Password (optional)</label>
+                            <div class="input-wrap">
+                                <input type="password" class="field" id="sharePassword" placeholder="Leave blank for no password">
+                                <button class="reveal" type="button" id="toggleSharePassword"><i class="bi bi-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="shareMaxDownloads" class="form-label">Max downloads (optional)</label>
+                            <input type="number" class="field" id="shareMaxDownloads" min="1" step="1" placeholder="Leave blank for unlimited">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block" id="createShareBtn">
+                            <i class="bi bi-link-45deg"></i>Create share link
+                        </button>
+                    </form>
+
+                    <div id="shareResult" class="share-result" style="display:none;">
+                        <label class="form-label">Share link</label>
+                        <div class="input-wrap">
+                            <input type="text" class="field" id="shareResultLink" readonly>
+                            <button class="reveal" type="button" id="copyShareLink" title="Copy link"><i class="bi bi-clipboard"></i></button>
+                        </div>
+                        <div class="form-hint" id="shareResultMeta"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage shares modal -->
+    <div class="modal" id="manageSharesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Shared links</h5>
+                    <button type="button" class="btn-close" data-modal-dismiss></button>
+                </div>
+                <div class="modal-body">
+                    <div id="sharesList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Base URL modal (admin) -->
+    <div class="modal" id="baseUrlModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Base URL</h5>
+                    <button type="button" class="btn-close" data-modal-dismiss></button>
+                </div>
+                <div class="modal-body">
+                    <p class="form-hint" style="margin-top:-4px;">
+                        Used to build share links. Files can't be shared until this is set.
+                    </p>
+                    <form id="baseUrlForm">
+                        <div class="form-row">
+                            <label for="baseUrlInput" class="form-label">URL</label>
+                            <input type="text" class="field" id="baseUrlInput" placeholder="https://cloudboxio.example.com" required>
+                            <div class="form-hint">No trailing slash needed — it's stripped automatically.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Save</button>
+                    </form>
                 </div>
             </div>
         </div>
