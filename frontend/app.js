@@ -676,9 +676,9 @@ function renderSharesPanel(shares) {
         const pwEl = document.createElement('span');
         if (share.password_required) {
             pwEl.className = 'badge-locked';
-            pwEl.innerHTML = '<i class="bi bi-lock-fill"></i>Password required';
+            pwEl.innerHTML = '<i class="bi bi-lock-fill"></i> Password required';
         } else {
-            pwEl.innerHTML = '<i class="bi bi-unlock"></i>No password';
+            pwEl.innerHTML = '<i class="bi bi-unlock"></i> No password';
         }
         meta.appendChild(pwEl);
         meta.appendChild(makeSep());

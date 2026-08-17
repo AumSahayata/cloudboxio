@@ -383,15 +383,28 @@ func (h *FileHandler) sendSharedFile(c *fiber.Ctx, share *models.Share) error {
 		return fiber.ErrNotFound
 	}
 
-	_, err = h.DB.Exec(
-		`UPDATE shares
+	res, err := h.DB.Exec(`
+		UPDATE shares
 		SET download_count = download_count + 1
-		WHERE token = ?`,
-		share.Token,
-	)
+		WHERE token = ?
+			AND is_active = TRUE
+			AND (
+				max_downloads = 0
+				OR download_count < max_downloads
+		)
+	`, share.Token)
 
 	if err != nil {
 		return fiber.ErrInternalServerError
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fiber.ErrInternalServerError
+	}
+
+	if affected == 0 {
+		return fiber.ErrForbidden
 	}
 
 	// Send the file as a response
@@ -467,6 +480,10 @@ func (h *FileHandler) DownloadSharedFile(c *fiber.Ctx) error {
 		} else if errors.Is(err, fiber.ErrForbidden) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Max downloads reached"})
 		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{"error": "Failed to retrieve share"},
+		)
 	}
 
 	if share.PasswordHash.Valid && share.PasswordHash.String != "" {
@@ -486,7 +503,20 @@ func (h *FileHandler) DownloadSharedFile(c *fiber.Ctx) error {
 		}
 	}
 
-	return h.sendSharedFile(c, share)
+	err = h.sendSharedFile(c, share)
+	if err != nil {
+		if errors.Is(err, fiber.ErrForbidden) {
+			return c.Status(fiber.StatusForbidden).JSON(
+				fiber.Map{"error": "Max downloads reached"},
+			)
+		}
+
+		return err
+	}
+
+	internal.FileOps.Printf("Shared file downloaded: file_id=%s", share.FileID)
+
+	return nil
 }
 
 func (h *FileHandler) ListMySharedFiles(c *fiber.Ctx) error {
