@@ -56,7 +56,7 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 ```bash
 git clone https://github.com/AumSahayata/cloudboxio.git
 cd cloudboxio
-go mod tidy
+go mod download
 go build .
 ./cloudboxio
 ```
