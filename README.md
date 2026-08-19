@@ -23,7 +23,7 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 - 🎛️ Admin-only user management
 - 🗂️ Upload multiple files
 - 🛑 Graceful shutdown
-- 📱 Minimal Web UI with three built-in themes (light, dark, glass)
+- 📱 Minimal Web UI with three built-in themes (light, dark)
 - 🔍 Search through uploaded or shared files by filename using query parameters
 - 🚧 Rate Limiting
 - 🔒 Optional TLS (HTTPS) support
@@ -35,10 +35,16 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 ## </> UI
 
 > CloudBoxIO includes a clean, responsive UI for file management out of the box.
-> Switch between the light, dark and glass themes from the header, the choice is remembered in the browser.
+> Switch between the light and dark themes from the header, the choice is remembered in the browser.
 
 <p align="center">
-  <img src="https://i.ibb.co/1Y6CDPRC/image.png">
+  <img alt="Login in page" src="https://github.com/user-attachments/assets/94b30aaa-3890-4305-ae78-34cd67551ac0" />
+</p>
+<p align="center">
+  <img alt="Dashboard" src="https://github.com/user-attachments/assets/c229f94d-5aea-412e-8952-86a40201ede1" />
+</p>
+<p align="center">
+  <img alt="Mobile Dashboard" src="https://github.com/user-attachments/assets/888013c5-45bf-49d0-80c6-d768730810b1" />
 </p>
 
 ---
@@ -94,8 +100,7 @@ This project is licensed under the [MIT License](https://github.com/AumSahayata/
 - Your feedback, ideas, and contributions are always welcome. Whether it’s fixing a bug, improving the docs, or suggesting a new feature — every bit helps make CloudBoxIO better for everyone.
 - Ask questions or share ideas in [Discussions](https://github.com/AumSahayata/cloudboxio/discussions)  
 - Report bugs via [Issues](https://github.com/AumSahayata/cloudboxio/issues)  
-- Suggestions welcome! You can contribute:
-  - 💻 Frontend improvements  
+- Suggestions welcome! You can contribute: 
   - 🛠️ CI pipelines or GitHub Actions  
   - 🧪 Integration testing  
   - 🆕 Bring your own idea
