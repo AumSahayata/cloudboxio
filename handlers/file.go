@@ -352,13 +352,25 @@ func (h *FileHandler) getShareByToken(token string) (*models.Share, error) {
 
 	if share.ExpiresAt.Valid &&
 		time.Now().After(share.ExpiresAt.Time) {
-		h.DB.Exec(`UPDATE shares SET is_active = 0 WHERE token = ?`, token)
+		if _, err := h.DB.Exec(
+			`UPDATE shares SET is_active = 0 WHERE token = ?`,
+			token,
+		); err != nil {
+			return nil, fmt.Errorf("failed to deactivate expired share: %w", err)
+		}
+
 		return nil, fiber.ErrGone
 	}
 
 	if share.MaxDownloads != 0 &&
 		share.DownloadCount >= share.MaxDownloads {
-		h.DB.Exec(`UPDATE shares SET is_active = 0 WHERE token = ?`, token)
+		if _, err := h.DB.Exec(
+			`UPDATE shares SET is_active = 0 WHERE token = ?`,
+			token,
+		); err != nil {
+			return nil, fmt.Errorf("failed to deactivate exhausted share: %w", err)
+		}
+
 		return nil, fiber.ErrForbidden
 	}
 
