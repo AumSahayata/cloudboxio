@@ -123,7 +123,12 @@ func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to prepare query"})
 	}
-	defer stmt.Close()
+
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			internal.Info.Printf("failed to close statement: %v", err)
+		}
+	}()
 
 	// Query the database for the metadata
 	if keyword == "" {
@@ -149,6 +154,13 @@ func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 
 	// Use rows to iterate over the metadata
 	for rows.Next() {
+
+		if err := rows.Err(); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to get files: " + err.Error(),
+			})
+		}
+
 		var fileID string
 		var filename string
 		var size int64
@@ -557,6 +569,12 @@ func (h *FileHandler) ListMySharedFiles(c *fiber.Ctx) error {
 	files := make([]models.SharedFile, 0)
 
 	for rows.Next() {
+
+		if err := rows.Err(); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to get shared files: " + err.Error(),
+			})
+		}
 
 		var file models.SharedFile
 		var token string

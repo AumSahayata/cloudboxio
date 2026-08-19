@@ -23,7 +23,10 @@ func seedPrivateFile(t *testing.T, ctx *TestContext) (int64, string) {
 		t.Fatalf("mkdir: %v", err)
 	}
 	t.Cleanup(func() {
-		os.RemoveAll(dir)
+		err := os.RemoveAll(dir)
+		if err != nil {
+			t.Errorf("failed to remove temp dir: %v", err)
+		}
 	})
 
 	path := filepath.Join(dir, "secret.txt")

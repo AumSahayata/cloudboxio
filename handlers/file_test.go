@@ -51,7 +51,10 @@ func TestUploadFiles(t *testing.T) {
 		t.Fatal("failed to write to test file")
 	}
 
-	writer.Close()
+	err = writer.Close()
+	if err != nil {
+		t.Fatal("failed to close writer:", err)
+	}
 
 	// Create request
 	uploadReq := httptest.NewRequest("POST", "/upload?public=false", &body)
@@ -80,6 +83,10 @@ func TestUploadFiles(t *testing.T) {
 	found := make(map[string]bool)
 
 	for rows.Next() {
+		if err := rows.Err(); err != nil {
+			t.Fatalf("row iteration error: %v", err)
+		}
+
 		var name string
 		if err := rows.Scan(&name); err != nil {
 			t.Fatalf("failed to scan metadata: %v", err)
@@ -126,7 +133,10 @@ func TestPublicUploadFiles(t *testing.T) {
 		t.Fatal("failed to write to test file")
 	}
 
-	writer.Close()
+	err = writer.Close()
+	if err != nil {
+		t.Fatal("failed to close writer:", err)
+	}
 
 	// Create request
 	uploadReq := httptest.NewRequest("POST", "/upload?public=true", &body)
@@ -155,6 +165,10 @@ func TestPublicUploadFiles(t *testing.T) {
 	found := make(map[string]bool)
 
 	for rows.Next() {
+		if rows.Err() != nil {
+			t.Fatalf("failed to iterate over metadata: %v", rows.Err())
+		}
+
 		var name string
 		if err := rows.Scan(&name); err != nil {
 			t.Fatalf("failed to scan metadata: %v", err)
@@ -516,7 +530,7 @@ func TestShareFile(t *testing.T) {
 
 	err = ctx.DB.QueryRow(`
 		SELECT file_id, created_by, max_downloads,
-		       download_count, token, is_active
+		download_count, token, is_active
 		FROM shares
 		WHERE file_id = ?`,
 		1,
