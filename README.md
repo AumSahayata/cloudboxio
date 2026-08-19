@@ -51,7 +51,7 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 
 ## ⚡ Quick Start
 
-> ✅ Requires [Go](https://golang.org/dl/) 1.24 or higher (Go is only needed if building from source)
+> ✅ Requires [Go](https://golang.org/dl/) 1.25 or higher (Go is only needed if building from source)
 
 ```bash
 git clone https://github.com/AumSahayata/cloudboxio.git
