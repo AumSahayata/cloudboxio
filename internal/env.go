@@ -26,7 +26,11 @@ func GenerateENV() bool {
 		log.Fatalln("Failed to create .env file:", err)
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Println("Failed to close .env file:", err)
+		}
+	}()
 
 	// Writing to .env file
 	envContent := `PORT=3000
@@ -87,7 +91,11 @@ func UpdateEnvValue(key, value string) bool {
 		return false
 	}
 
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			Error.Println("Failed to close .env file:", err)
+		}
+	}()
 
 	var lines []string
 	scanner := bufio.NewScanner(file)

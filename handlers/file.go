@@ -148,7 +148,11 @@ func (h *FileHandler) ListFiles(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to query files"})
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			internal.Info.Printf("failed to close file rows: %v", err)
+		}
+	}()
 
 	fileList := make([]models.File, 0)
 
@@ -564,7 +568,11 @@ func (h *FileHandler) ListMySharedFiles(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to query files"})
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			internal.Info.Printf("failed to close file rows: %v", err)
+		}
+	}()
 
 	files := make([]models.SharedFile, 0)
 
