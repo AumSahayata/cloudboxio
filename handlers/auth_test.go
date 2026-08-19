@@ -335,6 +335,10 @@ func TestGetUsers(t *testing.T) {
 
 	for rows.Next() {
 
+		if err := rows.Err(); err != nil {
+			t.Fatalf("error iterating over rows: %v", err)
+		}
+
 		var id string
 		var username string
 		var isADM bool
