@@ -1,5 +1,9 @@
 # 📦 CloudBoxIO
 
+![Go Version](https://img.shields.io/github/go-mod/go-version/AumSahayata/cloudboxio)
+![Latest Release](https://img.shields.io/github/v/release/AumSahayata/cloudboxio)
+![License](https://img.shields.io/github/license/AumSahayata/cloudboxio)
+
 > A lightweight, self-hosted file storage and sharing server built with Go and Fiber.
 
 CloudBoxIO allows users to securely upload, share, and manage files with JWT-based authentication and an optional minimal UI. Built for simplicity and portability, it runs as a single binary and stores data using SQLite.
@@ -10,7 +14,7 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 
 - 🔐 User authentication and authorization using JWT
 - 📁 Upload, list, and download personal files
-- 🌐 Shared file support (public listing)
+- 🌐 Public file support
 - 🗑️ File deletion
 - 🧠 Filename conflict resolution (e.g., file(1).txt)
 - 📊 SQLite-based metadata and user storage
@@ -19,9 +23,11 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 - 🎛️ Admin-only user management
 - 🗂️ Upload multiple files
 - 🛑 Graceful shutdown
-- 📱 Minimal Web UI
+- 📱 Minimal Web UI with three built-in themes (light, dark)
 - 🔍 Search through uploaded or shared files by filename using query parameters
 - 🚧 Rate Limiting
+- 🔒 Optional TLS (HTTPS) support
+- 🐳 Docker support
 - 🧪 Unit testing
 
 ---
@@ -29,34 +35,47 @@ CloudBoxIO allows users to securely upload, share, and manage files with JWT-bas
 ## </> UI
 
 > CloudBoxIO includes a clean, responsive UI for file management out of the box.
+> Switch between the light and dark themes from the header, the choice is remembered in the browser.
 
 <p align="center">
-  <img src="https://i.postimg.cc/ZRLWYKMC/index.png" alt="Landing page" width="600">
+  <img alt="Login in page" src="https://github.com/user-attachments/assets/94b30aaa-3890-4305-ae78-34cd67551ac0" />
 </p>
-
 <p align="center">
-  <img src="https://i.postimg.cc/VNnSTF99/dashboard.png" alt="Dashboard page" width="600">
+  <img alt="Dashboard" src="https://github.com/user-attachments/assets/c229f94d-5aea-412e-8952-86a40201ede1" />
 </p>
-
 <p align="center">
-  <img src="https://i.postimg.cc/HxmJC73q/mobile-view.png" alt="Mobile view" width="250">
+  <img alt="Mobile Dashboard" src="https://github.com/user-attachments/assets/888013c5-45bf-49d0-80c6-d768730810b1" />
 </p>
 
 ---
 
 ## ⚡ Quick Start
 
-> ✅ Requires [Go](https://golang.org/dl/) 1.24 or higher (Go is only needed if building from source)
+> ✅ Requires [Go](https://golang.org/dl/) 1.25 or higher (Go is only needed if building from source)
 
 ```bash
 git clone https://github.com/AumSahayata/cloudboxio.git
 cd cloudboxio
-go mod tidy
+go mod download
 go build .
 ./cloudboxio
 ```
 
-> 💡 A `.env` file will be generated automatically on first run. You can edit it to change port, file directories, upload size, rate limiting, and more.
+> 💡 A `.env` file will be generated automatically on first run. You can edit it to change port, file directories, upload size, token lifetime, TLS certificates, rate limiting, and more.
+
+### 🐳 Docker
+
+```bash
+docker compose up --build
+```
+
+> 💡 State (`data.db`, `uploads/`, `logs/`, `.env`) is kept in the `/data` volume. The one-time admin password is written to `/data/temp_admin_credentials.txt`.
+
+### 🧪 Tests
+
+```bash
+go test ./...
+```
 
 ---
 
@@ -81,9 +100,7 @@ This project is licensed under the [MIT License](https://github.com/AumSahayata/
 - Your feedback, ideas, and contributions are always welcome. Whether it’s fixing a bug, improving the docs, or suggesting a new feature — every bit helps make CloudBoxIO better for everyone.
 - Ask questions or share ideas in [Discussions](https://github.com/AumSahayata/cloudboxio/discussions)  
 - Report bugs via [Issues](https://github.com/AumSahayata/cloudboxio/issues)  
-- Suggestions welcome! You can contribute:
-  - 🔄 Docker support  
-  - 💻 Frontend improvements  
+- Suggestions welcome! You can contribute: 
   - 🛠️ CI pipelines or GitHub Actions  
   - 🧪 Integration testing  
   - 🆕 Bring your own idea

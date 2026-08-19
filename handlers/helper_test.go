@@ -120,7 +120,7 @@ func setupTestEnv(t *testing.T) string {
 
 	// Set env variables
 	os.Setenv("FILES_DIR", tempDir)
-	os.Setenv("SHARED_DIR", "shared")
+	os.Setenv("PUBLIC_DIR", "public")
 
 	// Initialize FileOps logger to avoid nil panic
 	internal.FileOps = log.New(io.Discard, "", 0)

@@ -13,19 +13,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.24'
+          go-version: '1.25'
+          cache: true
 
-      - name: Install dependencies
-        run: go mod tidy
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
 
       - name: Run Tests with Coverage
         run: |
-          go test -v -coverprofile=coverage.out ./...
+          go test -count=1 -v -coverprofile=coverage.out ./...
           go tool cover -func=coverage.out
 
       - name: Upload coverage report
@@ -35,7 +39,7 @@ jobs:
           path: coverage.out
 
       - name: Lint with golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: latest
           args: --timeout=3m

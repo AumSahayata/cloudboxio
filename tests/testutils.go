@@ -43,12 +43,29 @@ func SetupTestDB(t *testing.T) *sql.DB {
 		filename TEXT,
 		size INTEGER,
 		path TEXT,
-		is_shared BOOLEAN DEFAULT FALSE,
-		uploaded_at string
+		is_public BOOLEAN DEFAULT FALSE,
+		uploaded_at DATETIME
 		);
 	`)
 	if err != nil {
 		t.Fatalf("failed to create metadata table: %v", err)
+	}
+
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS shares (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		file_id INTEGER NOT NULL,
+		token TEXT NOT NULL UNIQUE,
+		created_by TEXT NOT NULL,
+		expires_at DATETIME,
+		max_downloads INTEGER DEFAULT 0,
+		download_count INTEGER DEFAULT 0,
+		password_hash TEXT,
+		is_active BOOLEAN DEFAULT TRUE
+		);
+	`)
+	if err != nil {
+		t.Fatalf("failed to create shares table: %v", err)
 	}
 
 	return db

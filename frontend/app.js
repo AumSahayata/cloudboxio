@@ -1,5 +1,46 @@
-// API Configuration
+// ============================================================ CloudBoxIO UI
 const API_URL = '/api';
+
+/* ----------------------------------------------------------------- themes */
+const THEME_KEY = 'cbio-theme';
+const THEMES = ['paper', 'carbon'];
+
+function applyTheme(theme) {
+    if (!THEMES.includes(theme)) theme = 'paper';
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (_) { }
+    document.querySelectorAll('.ts-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.themeValue === theme);
+    });
+}
+
+function initTheme() {
+    let saved = 'paper';
+    try { saved = localStorage.getItem(THEME_KEY) || 'paper'; } catch (_) { }
+    applyTheme(saved);
+    document.querySelectorAll('.ts-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyTheme(btn.dataset.themeValue));
+    });
+}
+
+/* --------------------------------------------------------------- helpers */
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function formatDate(timestamp) {
+    if (!timestamp) return '';
+    const d = new Date(timestamp);
+    if (isNaN(d)) return '';
+    return d.toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
 
 // Helper function to truncate text
 function truncateText(text, maxLength = 35) {
@@ -8,179 +49,175 @@ function truncateText(text, maxLength = 35) {
     return text.substring(0, maxLength) + '...';
 }
 
-// Helper function to format file size
-function formatFileSize(bytes) {
-    if (!bytes) return '0 Bytes';
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+function iconForFilename(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const map = {
+        pdf: 'bi-filetype-pdf', doc: 'bi-filetype-doc', docx: 'bi-filetype-docx',
+        xls: 'bi-filetype-xlsx', xlsx: 'bi-filetype-xlsx', csv: 'bi-filetype-csv',
+        ppt: 'bi-filetype-pptx', pptx: 'bi-filetype-pptx', txt: 'bi-filetype-txt',
+        md: 'bi-filetype-md', json: 'bi-filetype-json', xml: 'bi-filetype-xml',
+        html: 'bi-filetype-html', css: 'bi-filetype-css', js: 'bi-filetype-js',
+        py: 'bi-filetype-py', java: 'bi-filetype-java', sh: 'bi-filetype-sh',
+        png: 'bi-filetype-png', jpg: 'bi-filetype-jpg', jpeg: 'bi-filetype-jpg',
+        gif: 'bi-filetype-gif', svg: 'bi-filetype-svg', webp: 'bi-file-image',
+        mp3: 'bi-filetype-mp3', wav: 'bi-filetype-wav', mp4: 'bi-filetype-mp4',
+        mov: 'bi-filetype-mov', zip: 'bi-file-zip', tar: 'bi-file-zip',
+        gz: 'bi-file-zip', rar: 'bi-file-zip', '7z': 'bi-file-zip'
+    };
+    return map[ext] || 'bi-file-earmark';
 }
 
-// Helper function to format date
-function formatDate(timestamp) {
-    if (!timestamp) return '';
-    return new Date(timestamp).toLocaleString();
+/* ------------------------------------------------------ loading overlay */
+function showLoading(message = 'Loading…') {
+    const overlay = document.getElementById('loadingOverlay');
+    const msg = document.getElementById('loadingMsg');
+    if (msg) msg.textContent = message;
+    if (overlay) overlay.classList.add('show');
 }
-
-// Display files in the list
-function displayFiles(files, container, sectionTitle) {
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    if (!Array.isArray(files) || files.length === 0) {
-        const noFilesElement = document.createElement('div');
-        noFilesElement.className = 'list-group-item text-center text-muted';
-        noFilesElement.textContent = 'No files found';
-        container.appendChild(noFilesElement);
-        return;
-    }
-
-    files.forEach(file => {
-        const fileItem = createFileListItem(file);
-        container.appendChild(fileItem);
-    });
-}
-
-// Create file list item
-function createFileListItem(file) {
-    const item = document.createElement('div');
-    item.className = 'list-group-item';
-
-    const isPublic = file.is_public;
-    const fileId = file.id || file.file_id || file.fileId || file.filename;
-    const filename = file.filename;
-
-    if (!fileId) {
-        console.error('File ID not found:', file);
-        return item;
-    }
-
-    item.innerHTML = `
-        <div class="d-flex">
-            <div class="file-name">
-                <strong data-bs-toggle="tooltip" data-bs-placement="top" title="${filename}">
-                    <span class="desktop-filename">${filename}</span>
-                    <span class="mobile-filename">${truncateText(filename)}</span>
-                </strong>
-                <small class="text-muted d-block">
-                    ${formatFileSize(file.size)} • ${formatDate(file.uploaded_at)}
-                    ${isPublic ? ' • Public' : ''}
-                    ${file.uploaded_by ? ` • Uploaded by: ${file.uploaded_by}` : ''}
-                </small>
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-sm btn-primary" onclick="downloadFile('${fileId}', '${filename.replace(/'/g, "\\'")}')">
-                    <i class="bi bi-download"></i> Download
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteFile('${fileId}')">
-                    <i class="bi bi-trash"></i> Delete
-                </button>
-            </div>
-            <div class="mobile-dropdown">
-                <button class="btn btn-outline-secondary btn-sm w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    Actions
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="downloadFile('${fileId}', '${filename.replace(/'/g, "\\'")}')">
-                        <i class="bi bi-download"></i> Download
-                    </a></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteFile('${fileId}')">
-                        <i class="bi bi-trash"></i> Delete
-                    </a></li>
-                </ul>
-            </div>
-        </div>
-    `;
-
-    // Initialize tooltips for this item
-    const tooltipTriggerList = item.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
-    return item;
-}
-
-// Loading overlay functions
-function showLoading(message = 'Loading...') {
-    let overlay = document.getElementById('loadingOverlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'loadingOverlay';
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div class="loading-content">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="loading-message mt-2">${message}</div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-    } else {
-        const messageElement = overlay.querySelector('.loading-message');
-        if (messageElement) {
-            messageElement.textContent = message;
-        }
-    }
-    overlay.style.display = 'flex';
-}
-
 function hideLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
+    if (overlay) overlay.classList.remove('show');
 }
 
-// Add loading overlay styles
-const style = document.createElement('style');
-style.textContent = `
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    }
-    .loading-content {
-        background-color: white;
-        padding: 2rem;
-        border-radius: 8px;
-        text-align: center;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    .loading-message {
-        color: #666;
-        margin-top: 1rem;
-    }
+/* --------------------------------------------------------- safe rendering */
+// Build a file row entirely with DOM APIs + textContent. User-controlled
+// values (filename, uploaded_by) are NEVER interpolated into HTML, which
+// removes the stored-XSS vector the old innerHTML template had.
+function createFileRow(file) {
+    const fileId = file.file_id || file.id || file.fileId;
+    const filename = file.filename || '';
 
-    /* Filename display styles */
-    .desktop-filename {
-        display: inline;
-    }
-    .mobile-filename {
-        display: none;
-    }
+    const row = document.createElement('div');
+    row.className = 'file-row';
 
-    @media (max-width: 768px) {
-        .desktop-filename {
-            display: none;
-        }
-        .mobile-filename {
-            display: inline;
-        }
-    }
-`;
-document.head.appendChild(style);
+    const icon = document.createElement('i');
+    icon.className = 'bi ' + iconForFilename(filename) + ' file-icon';
+    row.appendChild(icon);
 
-// Helper to get token or redirect to login if missing
+    const main = document.createElement('div');
+    main.className = 'file-main';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'file-name';
+    nameEl.textContent = filename;
+    nameEl.title = filename;
+    main.appendChild(nameEl);
+
+    const meta = document.createElement('div');
+    meta.className = 'file-meta';
+
+    const sizeEl = document.createElement('span');
+    sizeEl.textContent = formatFileSize(file.size);
+    meta.appendChild(sizeEl);
+
+    const dateStr = formatDate(file.uploaded_at);
+    if (dateStr) {
+        meta.appendChild(makeSep());
+        const dateEl = document.createElement('span');
+        dateEl.textContent = dateStr;
+        meta.appendChild(dateEl);
+    }
+    if (file.uploaded_by && file.uploaded_by !== 'Me') {
+        meta.appendChild(makeSep());
+        const byEl = document.createElement('span');
+        byEl.className = 'uploader';
+        byEl.textContent = '@' + file.uploaded_by;
+        meta.appendChild(byEl);
+    }
+    main.appendChild(meta);
+    row.appendChild(main);
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+
+    // Desktop: full inline buttons (hidden below 720px via CSS)
+    const inline = document.createElement('div');
+    inline.className = 'file-actions-inline';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'icon-btn';
+    dlBtn.title = 'Download';
+    dlBtn.innerHTML = '<i class="bi bi-download"></i>';
+    dlBtn.addEventListener('click', () => downloadFile(fileId, filename));
+    inline.appendChild(dlBtn);
+
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'icon-btn';
+    shareBtn.title = 'Share';
+    shareBtn.innerHTML = '<i class="bi bi-share"></i>';
+    shareBtn.addEventListener('click', () => openShareModal(fileId, filename));
+    inline.appendChild(shareBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn danger';
+    delBtn.title = 'Delete';
+    delBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+    delBtn.addEventListener('click', () => deleteFile(fileId));
+    inline.appendChild(delBtn);
+
+    actions.appendChild(inline);
+
+    // Mobile: 3-dot overflow menu (hidden at 720px and above via CSS)
+    const mobileActions = document.createElement('div');
+    mobileActions.className = 'file-actions-dropdown dropdown';
+
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'icon-btn dropdown-toggle';
+    moreBtn.title = 'Actions';
+    moreBtn.innerHTML = '<i class="bi bi-three-dots-vertical"></i>';
+    mobileActions.appendChild(moreBtn);
+
+    const menu = document.createElement('div');
+    menu.className = 'dropdown-menu dropdown-menu-end';
+
+    const dlItem = document.createElement('button');
+    dlItem.className = 'dropdown-item';
+    dlItem.innerHTML = '<i class="bi bi-download"></i>Download';
+    dlItem.addEventListener('click', () => downloadFile(fileId, filename));
+    menu.appendChild(dlItem);
+
+    const shareItem = document.createElement('button');
+    shareItem.className = 'dropdown-item';
+    shareItem.innerHTML = '<i class="bi bi-share"></i>Share';
+    shareItem.addEventListener('click', () => openShareModal(fileId, filename));
+    menu.appendChild(shareItem);
+
+    const delItem = document.createElement('button');
+    delItem.className = 'dropdown-item text-danger';
+    delItem.innerHTML = '<i class="bi bi-trash3"></i>Delete';
+    delItem.addEventListener('click', () => deleteFile(fileId));
+    menu.appendChild(delItem);
+
+    mobileActions.appendChild(menu);
+    actions.appendChild(mobileActions);
+    row.appendChild(actions);
+    return row;
+}
+
+function makeSep() {
+    const s = document.createElement('span');
+    s.className = 'sep';
+    s.textContent = '·';
+    return s;
+}
+
+function displayFiles(files, container, countEl) {
+    if (!container) return;
+    container.textContent = '';
+    const list = Array.isArray(files) ? files : [];
+    if (countEl) countEl.textContent = String(list.length);
+
+    if (list.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-row';
+        empty.textContent = 'No files yet';
+        container.appendChild(empty);
+        return;
+    }
+    list.forEach(f => container.appendChild(createFileRow(f)));
+}
+
+/* ------------------------------------------------------------ auth token */
 function getAuthTokenOrRedirect() {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -191,109 +228,47 @@ function getAuthTokenOrRedirect() {
     return token;
 }
 
-// Global loadFiles function
-async function loadFiles() {
-    showLoading('Loading files...');
-    try {
-        // Load my files
-        const myFilesResponse = await fetch(`${API_URL}/files`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
-        const myFilesData = await myFilesResponse.json();
-        if (!myFilesResponse.ok) {
-            throw new Error(myFilesData.error || 'Failed to fetch my files');
-        }
-        const myFilesList = document.getElementById('myFilesList');
-        if (myFilesList) {
-            displayFiles(myFilesData, myFilesList, 'My Files');
-        }
+function authHeaders(extra) {
+    return Object.assign({ 'Authorization': `Bearer ${getAuthTokenOrRedirect()}` }, extra || {});
+}
 
-        // Load shared files
-        const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
-        const sharedFilesData = await sharedFilesResponse.json();
-        if (!sharedFilesResponse.ok) {
-            throw new Error(sharedFilesData.error || 'Failed to fetch shared files');
-        }
-        const sharedFilesList = document.getElementById('sharedFilesList');
-        if (sharedFilesList) {
-            displayFiles(sharedFilesData, sharedFilesList, 'Public Files');
-        }
+/* --------------------------------------------------------------- files */
+async function loadFiles() {
+    showLoading('Loading files…');
+    try {
+        const myResp = await fetch(`${API_URL}/files`, { headers: authHeaders() });
+        handleApiResponse(myResp);
+        const myData = await myResp.json();
+        if (!myResp.ok) throw new Error(myData.error || 'Failed to fetch files');
+        displayFiles(myData, document.getElementById('myFilesList'),
+            document.getElementById('myFilesCount'));
+
+        const shResp = await fetch(`${API_URL}/files?public=true`, { headers: authHeaders() });
+        handleApiResponse(shResp);
+        const shData = await shResp.json();
+        if (!shResp.ok) throw new Error(shData.error || 'Failed to fetch public files');
+        displayFiles(shData, document.getElementById('publicFilesList'),
+            document.getElementById('publicFilesCount'));
     } catch (error) {
         console.error('Error loading files:', error);
-        alert(error.message || 'Error loading files');
     } finally {
         hideLoading();
     }
 }
 
-// Global logout function
-function logout() {
-    // Clear token
-    localStorage.removeItem('token');
-
-    // Clear the file lists
-    const myFilesList = document.getElementById('myFilesList');
-    const sharedFilesList = document.getElementById('sharedFilesList');
-    if (myFilesList) myFilesList.innerHTML = '';
-    if (sharedFilesList) sharedFilesList.innerHTML = '';
-
-    // Reset all forms
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-        form.reset();
-        // Clear any validation states or error messages
-        const inputs = form.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.classList.remove('is-invalid', 'is-valid');
-            // Clear any custom validation messages
-            const feedback = input.nextElementSibling;
-            if (feedback && feedback.classList.contains('invalid-feedback')) {
-                feedback.textContent = '';
-            }
-        });
-    });
-
-    // Close any open modals
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        const modalInstance = bootstrap.Modal.getInstance(modal);
-        if (modalInstance) {
-            modalInstance.hide();
-        }
-    });
-
-    // Clear any error messages or alerts
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => alert.remove());
-
-    // Update UI using the new function
-    showUnauthenticatedUI();
-    showLoginModal();
-}
-
-// Delete file
 async function deleteFile(fileId) {
-    if (!confirm('Are you sure you want to delete this file?')) return;
-
-    showLoading('Deleting file...');
+    if (!fileId) return;
+    if (!confirm('Delete this file?')) return;
+    showLoading('Deleting…');
     try {
-        const response = await fetch(`${API_URL}/file/${fileId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
+        const response = await fetch(`${API_URL}/file/${encodeURIComponent(fileId)}`, {
+            method: 'DELETE', headers: authHeaders()
         });
         handleApiResponse(response);
         if (response.ok) {
-            await loadFiles(); // Reload the file list after successful deletion
+            await loadFiles();
         } else {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             alert(data.error || 'Delete failed');
         }
     } catch (error) {
@@ -303,41 +278,26 @@ async function deleteFile(fileId) {
     }
 }
 
-// Download file
 async function downloadFile(fileId, filename) {
-    if (!fileId) {
-        alert('Invalid file ID');
-        return;
-    }
-
-    showLoading('Preparing download...');
+    if (!fileId) { alert('Invalid file ID'); return; }
+    showLoading('Preparing download…');
     try {
-        const response = await fetch(`${API_URL}/file/${fileId}`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
+        const response = await fetch(`${API_URL}/file/${encodeURIComponent(fileId)}`, {
+            headers: authHeaders()
         });
         handleApiResponse(response);
         if (!response.ok) {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             throw new Error(data.error || 'Download failed');
         }
-
-        // Get the blob from the response
         const blob = await response.blob();
-
-        // Create a temporary URL for the blob
         const url = window.URL.createObjectURL(blob);
-
-        // Create a temporary link element
         const link = document.createElement('a');
         link.href = url;
-        link.download = filename; // Use the passed filename
+        link.download = filename || 'download';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        // Clean up the URL
         window.URL.revokeObjectURL(url);
     } catch (error) {
         alert(`Error during download: ${error.message || error}`);
@@ -346,124 +306,28 @@ async function downloadFile(fileId, filename) {
     }
 }
 
-// Initialize password visibility toggles
-function togglePasswordVisibility(inputId, buttonId) {
-    const input = document.getElementById(inputId);
-    const button = document.getElementById(buttonId);
-    if (input && button) {
-        button.addEventListener('click', () => {
-            const type = input.type === 'password' ? 'text' : 'password';
-            input.type = type;
-            button.innerHTML = `<i class="bi bi-eye${type === 'password' ? '' : '-slash'}"></i>`;
-        });
-    }
+/* -------------------------------------------------------------- session */
+function logout() {
+    localStorage.removeItem('token');
+
+    const myFiles = document.getElementById('myFilesList');
+    const shFiles = document.getElementById('publicFilesList');
+    if (myFiles) myFiles.textContent = '';
+    if (shFiles) shFiles.textContent = '';
+
+    document.querySelectorAll('form').forEach(form => {
+        form.reset();
+        form.querySelectorAll('input').forEach(i => i.classList.remove('is-invalid', 'is-valid'));
+    });
+
+    document.querySelectorAll('.modal.open').forEach(modal => closeModal(modal.id));
+
+    showUnauthenticatedUI();
+    showLoginModal();
 }
 
-// Check authentication status
-function checkAuth() {
-    const token = localStorage.getItem('token');
-    if (token) {
-        showAuthenticatedUI();
-    } else {
-        showUnauthenticatedUI();
-    }
-}
-
-// Fetch and display user details
-async function fetchUserDetails() {
-    try {
-        const response = await fetch(`${API_URL}/user-info`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
-        handleApiResponse(response);
-        if (response.status === 404) {
-            // User not found, treat as unauthenticated
-            localStorage.removeItem('token');
-            showUnauthenticatedUI();
-            showLoginModal();
-            throw new Error('User not found. Please log in again.');
-        }
-        if (!response.ok) {
-            throw new Error('Failed to fetch user details');
-        }
-        const userData = await response.json();
-        displayUserDetails(userData);
-    } catch (error) {
-        console.error('Error fetching user details:', error);
-        alert('Failed to load user details');
-    }
-}
-
-// Display user details in the UI
-function displayUserDetails(userData) {
-    if (!userData) return;
-    // Update navigation username
-    const navUsername = document.getElementById('navUsername');
-    if (navUsername) {
-        // Add admin badge if user is admin
-        navUsername.textContent = userData.username;
-        if (userData.is_admin) {
-            navUsername.innerHTML += ' <span class="badge bg-warning">Admin</span>';
-            // Show admin-only options
-            document.getElementById('createUserNavItem').style.display = 'block';
-            document.getElementById('createUserDivider').style.display = 'block';
-            // Show users panel nav item
-            const showUsersPanelNavItem = document.getElementById('showUsersPanelNavItem');
-            if (showUsersPanelNavItem) showUsersPanelNavItem.style.display = 'block';
-        } else {
-            // Hide admin-only options
-            document.getElementById('createUserNavItem').style.display = 'none';
-            document.getElementById('createUserDivider').style.display = 'none';
-            // Hide users panel nav item
-            const showUsersPanelNavItem = document.getElementById('showUsersPanelNavItem');
-            if (showUsersPanelNavItem) showUsersPanelNavItem.style.display = 'none';
-        }
-    }
-}
-
-// Show authenticated UI
-function showAuthenticatedUI() {
-    // Show user profile
-    const userProfileNav = document.getElementById('userProfileNav');
-    if (userProfileNav) userProfileNav.classList.remove('d-none');
-
-    // Show main content
-    document.getElementById('authSection').style.display = 'none';
-    document.getElementById('mainSection').style.display = 'block';
-
-    // Fetch and display user details
-    fetchUserDetails();
-
-    // Load files
-    loadFiles();
-}
-
-// Show unauthenticated UI
-function showUnauthenticatedUI() {
-    // Hide user profile
-    const userProfileNav = document.getElementById('userProfileNav');
-    if (userProfileNav) userProfileNav.classList.add('d-none');
-
-    // Show auth content
-    document.getElementById('authSection').style.display = 'block';
-    document.getElementById('mainSection').style.display = 'none';
-}
-
-// Helper to show the login modal
-function showLoginModal() {
-    const loginModalElement = document.getElementById('loginModal');
-    if (loginModalElement) {
-        const loginModal = new bootstrap.Modal(loginModalElement);
-        loginModal.show();
-    }
-}
-
-// Update handleApiResponse to show login modal on 498
 function handleApiResponse(response) {
-    if (response.status === 498) {
-        // Token missing or expired
+    if (response.status === 498 || response.status === 401) {
         localStorage.removeItem('token');
         showUnauthenticatedUI();
         showLoginModal();
@@ -472,44 +336,111 @@ function handleApiResponse(response) {
     return response;
 }
 
-// Helper to render the users panel (admin only)
-function renderUsersPanel(users) {
-    const usersList = document.getElementById('usersList');
-    if (!usersList) return;
-    usersList.innerHTML = '';
-    users.forEach(user => {
-        const userItem = document.createElement('div');
-        userItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        userItem.innerHTML = `
-            <span><strong>${user.username}</strong> ${user.is_admin ? '<span class="badge bg-warning">Admin</span>' : ''}</span>
-            <button class="btn btn-sm btn-danger delete-user-btn" data-user-id="${user.id}"><i class="bi bi-trash"></i> Delete</button>
-        `;
-        usersList.appendChild(userItem);
-    });
-    // Attach event listeners for delete buttons
-    usersList.querySelectorAll('.delete-user-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const userId = this.getAttribute('data-user-id');
-            deleteUser(userId, this);
-        });
+/* --------------------------------------------------------- user details */
+async function fetchUserDetails() {
+    try {
+        const response = await fetch(`${API_URL}/user-info`, { headers: authHeaders() });
+        if (response.status === 404) {
+            localStorage.removeItem('token');
+            showUnauthenticatedUI();
+            showLoginModal();
+            return;
+        }
+        handleApiResponse(response);
+        if (!response.ok) throw new Error('Failed to fetch user details');
+        displayUserDetails(await response.json());
+    } catch (error) {
+        console.error('Error fetching user details:', error);
+    }
+}
+
+function displayUserDetails(userData) {
+    if (!userData) return;
+    const navUsername = document.getElementById('navUsername');
+    if (navUsername) {
+        navUsername.textContent = userData.username;   // safe: no HTML
+        if (userData.is_admin) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-admin';
+            badge.textContent = 'admin';
+            navUsername.appendChild(badge);
+        }
+    }
+    const adminEls = ['createUserNavItem', 'createUserDivider', 'showUsersPanelNavItem', 'baseUrlNavItem'];
+    adminEls.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = userData.is_admin ? 'block' : 'none';
     });
 }
 
-// Fetch all users (admin only)
+/* ------------------------------------------------------------- UI state */
+function showAuthenticatedUI() {
+    const nav = document.getElementById('userProfileNav');
+    if (nav) nav.classList.remove('d-none');
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('mainSection').style.display = 'block';
+    fetchUserDetails();
+    loadFiles();
+}
+
+function showUnauthenticatedUI() {
+    const nav = document.getElementById('userProfileNav');
+    if (nav) nav.classList.add('d-none');
+    document.getElementById('authSection').style.display = 'block';
+    document.getElementById('mainSection').style.display = 'none';
+    const navUsername = document.getElementById('navUsername');
+    if (navUsername) navUsername.textContent = 'User';
+}
+
+function showLoginModal() {
+    if (document.getElementById('loginModal')) openModal('loginModal');
+}
+
+function checkAuth() {
+    if (localStorage.getItem('token')) showAuthenticatedUI();
+    else showUnauthenticatedUI();
+}
+
+/* ------------------------------------------------------- users (admin) */
+function renderUsersPanel(users) {
+    const usersList = document.getElementById('usersList');
+    if (!usersList) return;
+    usersList.textContent = '';
+
+    (users || []).forEach(user => {
+        const row = document.createElement('div');
+        row.className = 'user-row';
+
+        const left = document.createElement('span');
+        left.className = 'uname';
+        const strong = document.createElement('strong');
+        strong.textContent = user.username;          // safe
+        left.appendChild(strong);
+        if (user.is_admin) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-admin';
+            badge.textContent = 'admin';
+            left.appendChild(badge);
+        }
+        row.appendChild(left);
+
+        const del = document.createElement('button');
+        del.className = 'btn btn-danger';
+        del.innerHTML = '<i class="bi bi-trash3 me-1"></i>Delete';
+        del.addEventListener('click', () => deleteUser(user.id, del));
+        row.appendChild(del);
+
+        usersList.appendChild(row);
+    });
+}
+
 async function fetchAllUsers() {
     try {
-        showLoading('Loading users...');
-        const response = await fetch(`${API_URL}/users`, {
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
-        });
+        showLoading('Loading users…');
+        const response = await fetch(`${API_URL}/users`, { headers: authHeaders() });
         handleApiResponse(response);
-        if (!response.ok) {
-            throw new Error('Failed to fetch users');
-        }
-        const users = await response.json();
-        renderUsersPanel(users);
+        if (!response.ok) throw new Error('Failed to fetch users');
+        renderUsersPanel(await response.json());
     } catch (error) {
         console.error('Error fetching users:', error);
         alert(error.message || 'Failed to load users');
@@ -518,25 +449,21 @@ async function fetchAllUsers() {
     }
 }
 
-// Update deleteUser to use id in the API call
 async function deleteUser(userId, btn) {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    if (!confirm('Delete this user?')) return;
     btn.disabled = true;
     try {
-        showLoading('Deleting user...');
+        showLoading('Deleting user…');
         const response = await fetch(`${API_URL}/users/${encodeURIComponent(userId)}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-            },
+            method: 'DELETE', headers: authHeaders()
         });
         handleApiResponse(response);
         if (!response.ok) {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             throw new Error(data.error || 'Delete failed');
         }
-        // Remove user from the list
-        btn.closest('.list-group-item').remove();
+        const row = btn.closest('.user-row');
+        if (row) row.remove();
     } catch (error) {
         alert(`Error during delete: ${error.message || error}`);
     } finally {
@@ -545,50 +472,324 @@ async function deleteUser(userId, btn) {
     }
 }
 
-// Fetch users when the usersModal is shown
-const usersModal = document.getElementById('usersModal');
-if (usersModal) {
-    usersModal.addEventListener('show.bs.modal', () => {
-        fetchAllUsers();
+/* ------------------------------------------------------------- sharing
+   Matches the real Fiber handlers:
+     POST   /api/file/:fileid/share   { expires_in_hours?, password?, max_downloads? }
+            -> 201 { url }                          (nothing else is echoed back)
+     GET    /api/files/shares
+            -> [{ ID, FileID, FileName, Size, ExpiresAt: {String, Valid},
+                   DownloadCount, MaxDownloads, URL }]   (no json tags -> Go field names)
+     DELETE /api/files/share/:id      (numeric share row id, NOT the token)
+   Note: the list response has no password_required field, so a "password
+   protected" badge can't be shown from that endpoint as it stands.
+*/
+let currentShareFileId = null;
+
+function openShareModal(fileId, filename) {
+    currentShareFileId = fileId;
+    const nameEl = document.getElementById('shareModalFilename');
+    if (nameEl) nameEl.textContent = filename || '';
+
+    const form = document.getElementById('createShareForm');
+    const result = document.getElementById('shareResult');
+    if (form) { form.reset(); form.style.display = 'block'; }
+    if (result) result.style.display = 'none';
+
+    openModal('shareModal');
+}
+
+// expiresAt now comes back as a plain ISO string or null (backend fixed to
+// stop leaking the raw sql.NullString wrapper).
+function formatExpiry(expiresAt) {
+    if (!expiresAt) return 'Never expires';
+    const d = new Date(expiresAt);
+    if (isNaN(d)) return 'Never expires';
+    const expired = d.getTime() < Date.now();
+    return (expired ? 'Expired ' : 'Expires ') + d.toLocaleDateString(undefined, {
+        year: 'numeric', month: 'short', day: '2-digit'
     });
 }
 
-// Initialize the application
+function initShareModal() {
+    togglePasswordVisibility('sharePassword', 'toggleSharePassword');
+
+    const createShareForm = document.getElementById('createShareForm');
+    if (createShareForm) {
+        createShareForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentShareFileId) return;
+
+            const password = document.getElementById('sharePassword').value;
+            const expiryDays = document.getElementById('shareExpiry').value;
+            const maxDownloadsRaw = document.getElementById('shareMaxDownloads').value;
+            const btn = document.getElementById('createShareBtn');
+
+            const body = {};
+            if (password) body.password = password;
+            if (expiryDays) body.expires_in_hours = Number(expiryDays) * 24;
+            if (maxDownloadsRaw) body.max_downloads = Number(maxDownloadsRaw);
+
+            btn.disabled = true;
+            showLoading('Creating share link…');
+            try {
+                const response = await fetch(`${API_URL}/file/${encodeURIComponent(currentShareFileId)}/share`, {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify(body)
+                });
+                handleApiResponse(response);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to create share link');
+
+                // The API only returns { url } on creation — everything else in
+                // this summary reflects what we just sent, not a server echo.
+                document.getElementById('shareResultLink').value = data.url || '';
+                const expiryText = expiryDays ? `Expires in ${expiryDays} day${expiryDays === '1' ? '' : 's'}` : 'Never expires';
+                const downloadsText = maxDownloadsRaw ? `Max ${maxDownloadsRaw} download${maxDownloadsRaw === '1' ? '' : 's'}` : 'Unlimited downloads';
+                document.getElementById('shareResultMeta').textContent =
+                    (password ? 'Password protected · ' : 'No password · ') + expiryText + ' · ' + downloadsText;
+                document.getElementById('shareResult').style.display = 'block';
+                createShareForm.style.display = 'none';
+            } catch (error) {
+                console.error('Create share error:', error);
+                alert(error.message || 'Error creating share link');
+            } finally {
+                btn.disabled = false;
+                hideLoading();
+            }
+        });
+    }
+
+    const copyBtn = document.getElementById('copyShareLink');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const input = document.getElementById('shareResultLink');
+            if (!input || !input.value) return;
+            try {
+                await navigator.clipboard.writeText(input.value);
+                copyBtn.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(() => { copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 1500);
+            } catch (_) {
+                input.select();
+                document.execCommand('copy');
+            }
+        });
+    }
+
+    const manageSharesModal = document.getElementById('manageSharesModal');
+    if (manageSharesModal) {
+        manageSharesModal.addEventListener('modal:show', fetchMyShares);
+    }
+
+    const baseUrlModal = document.getElementById('baseUrlModal');
+    if (baseUrlModal) {
+        baseUrlModal.addEventListener('modal:show', fetchBaseUrl);
+    }
+
+    const baseUrlForm = document.getElementById('baseUrlForm');
+    if (baseUrlForm) {
+        baseUrlForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('baseUrlInput');
+            const value = input.value.trim();
+            showLoading('Saving…');
+            try {
+                const response = await fetch(`${API_URL}/settings/base-url`, {
+                    method: 'PUT',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ base_url: value })
+                });
+                handleApiResponse(response);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to save base URL');
+                input.value = data.base_url || '';
+                showLoading('Saved');
+                setTimeout(hideLoading, 1200);
+            } catch (error) {
+                console.error('Save base URL error:', error);
+                alert(error.message || 'Error saving base URL');
+                hideLoading();
+            }
+        });
+    }
+}
+
+async function fetchBaseUrl() {
+    const input = document.getElementById('baseUrlInput');
+    if (!input) return;
+    try {
+        const response = await fetch(`${API_URL}/settings/base-url`, { headers: authHeaders() });
+        handleApiResponse(response);
+        if (!response.ok) throw new Error('Failed to load base URL');
+        const data = await response.json();
+        input.value = data.base_url || '';
+    } catch (error) {
+        console.error('Error fetching base URL:', error);
+    }
+}
+
+async function fetchMyShares() {
+    try {
+        showLoading('Loading shared links…');
+        const response = await fetch(`${API_URL}/files/shares`, { headers: authHeaders() });
+        handleApiResponse(response);
+        if (!response.ok) throw new Error('Failed to fetch shared links');
+        renderSharesPanel(await response.json());
+    } catch (error) {
+        console.error('Error fetching shares:', error);
+        alert(error.message || 'Failed to load shared links');
+    } finally {
+        hideLoading();
+    }
+}
+
+function renderSharesPanel(shares) {
+    const list = document.getElementById('sharesList');
+    if (!list) return;
+    list.textContent = '';
+
+    const items = Array.isArray(shares) ? shares : [];
+    if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-row';
+        empty.textContent = 'No shared links yet';
+        list.appendChild(empty);
+        return;
+    }
+
+    items.forEach(share => {
+        const row = document.createElement('div');
+        row.className = 'share-row';
+
+        const main = document.createElement('div');
+        main.className = 'share-main';
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'share-filename';
+        nameEl.textContent = share.filename || 'Untitled file';
+        nameEl.title = share.filename || '';
+        main.appendChild(nameEl);
+
+        const meta = document.createElement('div');
+        meta.className = 'share-meta';
+
+        const pwEl = document.createElement('span');
+        if (share.password_required) {
+            pwEl.className = 'badge-locked';
+            pwEl.innerHTML = '<i class="bi bi-lock-fill"></i> Password required';
+        } else {
+            pwEl.innerHTML = '<i class="bi bi-unlock"></i> No password';
+        }
+        meta.appendChild(pwEl);
+        meta.appendChild(makeSep());
+
+        const expiryEl = document.createElement('span');
+        const isExpired = share.expires_at && new Date(share.expires_at).getTime() < Date.now();
+        expiryEl.className = isExpired ? 'badge-expired' : '';
+        expiryEl.textContent = formatExpiry(share.expires_at);
+        meta.appendChild(expiryEl);
+        meta.appendChild(makeSep());
+
+        const dlEl = document.createElement('span');
+        const downloadCount = share.download_count || 0;
+        dlEl.textContent = share.max_downloads > 0
+            ? `${downloadCount} / ${share.max_downloads} downloads`
+            : `${downloadCount} downloads (unlimited)`;
+        meta.appendChild(dlEl);
+
+        main.appendChild(meta);
+        row.appendChild(main);
+
+        const actions = document.createElement('div');
+        actions.className = 'share-actions';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'icon-btn';
+        copyBtn.title = 'Copy link';
+        copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(share.url || '');
+                copyBtn.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(() => { copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 1500);
+            } catch (_) { /* clipboard unavailable, ignore */ }
+        });
+        actions.appendChild(copyBtn);
+
+        const revokeBtn = document.createElement('button');
+        revokeBtn.className = 'icon-btn danger';
+        revokeBtn.title = 'Revoke';
+        revokeBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+        revokeBtn.addEventListener('click', () => revokeShare(share.id, row));
+        actions.appendChild(revokeBtn);
+
+        row.appendChild(actions);
+        list.appendChild(row);
+    });
+}
+
+async function revokeShare(shareId, rowEl) {
+    if (shareId === undefined || shareId === null) return;
+    if (!confirm('Revoke this share link? Anyone with the link will lose access.')) return;
+    showLoading('Revoking…');
+    try {
+        const response = await fetch(`${API_URL}/files/share/${encodeURIComponent(shareId)}`, {
+            method: 'DELETE', headers: authHeaders()
+        });
+        handleApiResponse(response);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || 'Failed to revoke share link');
+        }
+        if (rowEl) rowEl.remove();
+    } catch (error) {
+        alert(error.message || 'Error revoking share link');
+    } finally {
+        hideLoading();
+    }
+}
+
+/* ---------------------------------------------------- password reveal */
+function togglePasswordVisibility(inputId, buttonId) {
+    const input = document.getElementById(inputId);
+    const button = document.getElementById(buttonId);
+    if (input && button) {
+        button.addEventListener('click', () => {
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            button.innerHTML = `<i class="bi bi-eye${show ? '-slash' : ''}"></i>`;
+        });
+    }
+}
+
+/* --------------------------------------------------------------- init */
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize password visibility toggles
+    initTheme();
+
     togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
     togglePasswordVisibility('currentPassword', 'toggleCurrentPassword');
     togglePasswordVisibility('newPassword', 'toggleNewPassword');
     togglePasswordVisibility('newUserPassword', 'toggleNewUserPassword');
 
-    // Handle login
+    // Login
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-
-            showLoading('Logging in...');
+            showLoading('Signing in…');
             try {
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-
                 const data = await response.json();
                 if (response.ok) {
-                    // Store only the token
                     localStorage.setItem('token', data.token);
-
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-                    if (modal) modal.hide();
+                    closeModal('loginModal');
                     loginForm.reset();
-
-                    // Update UI using the new function
                     showAuthenticatedUI();
                     hideLoading();
                 } else {
@@ -602,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle file upload
+    // Upload
     const uploadForm = document.getElementById('uploadForm');
     const fileInput = document.getElementById('fileInput');
     if (uploadForm && fileInput) {
@@ -610,90 +811,62 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const files = fileInput.files;
             if (files.length === 0) return;
+            const isPublic = document.getElementById('publicCheckbox')?.checked || false;
+            const uploadUrl = `${API_URL}/upload${isPublic ? '?public=true' : ''}`;
 
-            // Check if shared checkbox is checked
-            const isShared = document.getElementById('sharedCheckbox')?.checked || false;
-            const uploadUrl = `${API_URL}/upload${isShared ? '?shared=true' : ''}`;
-
-            showLoading('Uploading files...');
-            let uploadSuccess = true;
-            // Upload each file individually
-            for (let file of files) {
+            showLoading('Uploading…');
+            let ok = true;
+            for (const file of files) {
                 const formData = new FormData();
                 formData.append('files', file);
-
                 try {
                     const response = await fetch(uploadUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                        },
-                        body: formData,
+                        method: 'POST', headers: authHeaders(), body: formData
                     });
-
                     if (!response.ok) {
-                        const data = await response.json();
+                        const data = await response.json().catch(() => ({}));
                         alert(data.error || `Failed to upload ${file.name}`);
-                        uploadSuccess = false;
+                        ok = false;
                     }
                 } catch (error) {
                     console.error('Upload error:', error);
                     alert(`Error uploading ${file.name}`);
-                    uploadSuccess = false;
+                    ok = false;
                 }
             }
-
-            // Clear the input and reload files
             fileInput.value = '';
-            uploadForm.reset(); // Reset the entire form including the shared checkbox
+            uploadForm.reset();
             await loadFiles();
-
-            if (uploadSuccess) {
-                showLoading('Upload successful!');
-                // Wait for 2 seconds before hiding the loading message
-                setTimeout(() => {
-                    hideLoading();
-                }, 2000);
+            if (ok) {
+                showLoading('Uploaded');
+                setTimeout(hideLoading, 1200);
             } else {
                 hideLoading();
             }
         });
     }
 
-    // Handle reset password
+    // Reset password
     const resetPasswordForm = document.getElementById('resetPasswordForm');
     if (resetPasswordForm) {
         resetPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
-
-            // Validate new password length
-            if (newPassword.length < 8) {
-                alert('New password must be at least 8 characters long');
-                return;
-            }
-
-            showLoading('Resetting password...');
+            if (newPassword.length < 8) { alert('New password must be at least 8 characters'); return; }
+            showLoading('Updating password…');
             try {
                 const response = await fetch(`${API_URL}/reset-password`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
                 });
-
                 const data = await response.json();
                 if (response.ok) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
-                    if (modal) modal.hide();
+                    closeModal('resetPasswordModal')
                     resetPasswordForm.reset();
-                    showLoading('Password reset successful!');
-                    setTimeout(() => {
-                        hideLoading();
-                    }, 2000);
+                    showLoading('Password updated');
+                    setTimeout(hideLoading, 1200);
                 } else {
                     throw new Error(data.error || 'Password reset failed');
                 }
@@ -705,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle create user
+    // Create user
     const createUserForm = document.getElementById('createUserForm');
     if (createUserForm) {
         createUserForm.addEventListener('submit', async (e) => {
@@ -713,33 +886,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = document.getElementById('newUsername').value;
             const password = document.getElementById('newUserPassword').value;
             const isAdmin = document.getElementById('isAdminCheckbox').checked;
-
-            // Validate password length
-            if (password.length < 8) {
-                alert('Password must be at least 8 characters long');
-                return;
-            }
-
-            showLoading('Creating user...');
+            if (password.length < 8) { alert('Password must be at least 8 characters'); return; }
+            showLoading('Creating user…');
             try {
                 const response = await fetch(`${API_URL}/signup`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ username, password, is_admin: isAdmin })
                 });
-
                 const data = await response.json();
                 if (response.ok) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
-                    if (modal) modal.hide();
                     createUserForm.reset();
-                    showLoading('User created successfully!');
-                    setTimeout(() => {
-                        hideLoading();
-                    }, 2000);
+                    showLoading('User created');
+                    setTimeout(hideLoading, 1200);
                 } else {
                     throw new Error(data.error || 'Failed to create user');
                 }
@@ -751,54 +910,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle file search
+    // Search
     const fileSearchForm = document.getElementById('fileSearchForm');
     const fileSearchInput = document.getElementById('fileSearchInput');
     if (fileSearchForm && fileSearchInput) {
         fileSearchForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const keyword = fileSearchInput.value.trim();
-            if (!keyword) {
-                // If search is empty, reload all files
-                await loadFiles();
-                return;
-            }
-            showLoading('Searching files...');
+            if (!keyword) { await loadFiles(); return; }
+            showLoading('Searching…');
             try {
-                // Search my files
-                const myFilesResponse = await fetch(`${API_URL}/files?keyword=${encodeURIComponent(keyword)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
-                });
-                handleApiResponse(myFilesResponse);
-                const myFilesData = await myFilesResponse.json();
-                if (!myFilesResponse.ok) {
-                    throw new Error(myFilesData.error || 'Failed to search my files');
-                }
-                const myFilesList = document.getElementById('myFilesList');
-                if (myFilesList) {
-                    displayFiles(myFilesData, myFilesList, 'My Files');
-                }
+                const myResp = await fetch(`${API_URL}/files?keyword=${encodeURIComponent(keyword)}`, { headers: authHeaders() });
+                handleApiResponse(myResp);
+                const myData = await myResp.json();
+                if (!myResp.ok) throw new Error(myData.error || 'Search failed');
+                displayFiles(myData, document.getElementById('myFilesList'),
+                    document.getElementById('myFilesCount'));
 
-                // Search shared files
-                const sharedFilesResponse = await fetch(`${API_URL}/files?shared=true&keyword=${encodeURIComponent(keyword)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${getAuthTokenOrRedirect()}`,
-                    },
-                });
-                fileSearchForm.addEventListener('reset', async () => {
-                    await loadFiles(); // reload all files when reset is clicked
-                });
-                handleApiResponse(sharedFilesResponse);
-                const sharedFilesData = await sharedFilesResponse.json();
-                if (!sharedFilesResponse.ok) {
-                    throw new Error(sharedFilesData.error || 'Failed to search shared files');
-                }
-                const sharedFilesList = document.getElementById('sharedFilesList');
-                if (sharedFilesList) {
-                    displayFiles(sharedFilesData, sharedFilesList, 'Public Files');
-                }
+                const shResp = await fetch(`${API_URL}/files?public=true&keyword=${encodeURIComponent(keyword)}`, { headers: authHeaders() });
+                handleApiResponse(shResp);
+                const shData = await shResp.json();
+                if (!shResp.ok) throw new Error(shData.error || 'Search failed');
+                displayFiles(shData, document.getElementById('publicFilesList'),
+                    document.getElementById('publicFilesCount'));
             } catch (error) {
                 console.error('Error searching files:', error);
                 alert(error.message || 'Error searching files');
@@ -806,8 +940,73 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideLoading();
             }
         });
+        fileSearchForm.addEventListener('reset', () => { loadFiles(); });
     }
 
-    // Check initial authentication status
+    // Users modal
+    const usersModal = document.getElementById('usersModal');
+    if (usersModal) {
+        usersModal.addEventListener('modal:show', fetchAllUsers);
+    }
+
+    initShareModal();
+    initModals();
+    initDropdowns();
     checkAuth();
-}); 
+});
+
+/* ------------------------------------------------- modal (no bootstrap) */
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    let backdrop = document.querySelector('.modal-backdrop');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+        document.body.appendChild(backdrop);
+        backdrop.addEventListener('click', () => {
+            document.querySelectorAll('.modal.open').forEach(m => closeModal(m.id));
+        });
+    }
+    requestAnimationFrame(() => backdrop.classList.add('show'));
+    modal.classList.add('open');
+    modal.dispatchEvent(new CustomEvent('modal:show'));
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove('open');
+    if (!document.querySelector('.modal.open')) {
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.remove();
+    }
+}
+
+function initModals() {
+    document.querySelectorAll('[data-modal-target]').forEach(btn => {
+        btn.addEventListener('click', () => openModal(btn.dataset.modalTarget));
+    });
+    document.querySelectorAll('[data-modal-dismiss]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.closest('.modal').id));
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('.modal.open').forEach(m => closeModal(m.id));
+    });
+}
+
+/* ---------------------------------------------- dropdown (no bootstrap) */
+function initDropdowns() {
+    document.addEventListener('click', (e) => {
+        const toggle = e.target.closest('.dropdown-toggle');
+        if (toggle) {
+            e.stopPropagation();
+            const menu = toggle.nextElementSibling;
+            const isOpen = menu.classList.contains('show');
+            document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+            if (!isOpen) menu.classList.add('show');
+            return;
+        }
+        document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    });
+}

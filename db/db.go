@@ -34,7 +34,7 @@ func InitDB() (*sql.DB, error) {
 		filename TEXT,
 		size INTEGER,
 		path TEXT,
-		is_shared BOOLEAN DEFAULT FALSE,
+		is_public BOOLEAN DEFAULT FALSE,
 		uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
 	if _, err = db.Exec(createTable); err != nil {
@@ -62,8 +62,28 @@ func InitDB() (*sql.DB, error) {
 		log.Println("Failed to create settings table:", err)
 	}
 
+	// createTable is a prepared statement to create shares table.
+	createTable = `CREATE TABLE IF NOT EXISTS shares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id INTEGER NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    created_by TEXT NOT NULL,
+    expires_at DATETIME,
+    max_downloads INTEGER,
+    download_count INTEGER NOT NULL DEFAULT 0,
+    password_hash TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+	);`
+	if _, err = db.Exec(createTable); err != nil {
+		log.Println("Failed to create shares table:", err)
+	}
+
 	// Insert a default 'admin_setup_done' flag if it doesn't exist yet.
-	stmt := `INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_setup_done', 'false')`
+	stmt := `INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_setup_done', 'false'), ('base_url', null))`
 	if _, err := db.Exec(stmt); err != nil {
 		log.Println("Failed to setup initial settings:", err)
 	}

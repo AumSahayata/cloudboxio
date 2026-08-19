@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"embed"
 	"io/fs"
 	"net"
@@ -19,7 +20,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
 
-const Version = "1.4.2"
+const Version = "2.0.0"
 
 //go:embed frontend/*
 var embeddedFiles embed.FS
@@ -83,19 +84,26 @@ func main() {
 
 	authHandler := handlers.NewAuthHandler(database, internal.Info, internal.Error)
 	fileHandler := handlers.NewFileHandler(database)
+	settingsHandler := handlers.NewSettingsHandler(database)
 
 	api := app.Group("/api")
 	//Public routes
 	api.Post("/login", authHandler.Login)
+	api.Get("/s/:token", fileHandler.ServeSharePage)
+	api.Get("/share/:token", fileHandler.GetSharedInfo)
+	api.Post("/share/:token/download", fileHandler.DownloadSharedFile)
 
 	//Protected routes
 	api.Use(internal.JWTProtected())
 
 	// Files endpoint
-	api.Post("/upload:shared?", fileHandler.UploadFile)
-	api.Get("/files:keyword?:shared?", fileHandler.ListFiles)
+	api.Post("/upload:public?", fileHandler.UploadFile)
+	api.Get("/files/shares", fileHandler.ListMySharedFiles)
+	api.Delete("/files/share/:id", fileHandler.DeactivateShare)
+	api.Get("/files:keyword?:public?", fileHandler.ListFiles)
 	api.Get("/file/:fileid", fileHandler.DownloadFile)
 	api.Delete("/file/:fileid", fileHandler.DeleteFile)
+	api.Post("/file/:fileid/share", fileHandler.ShareFile)
 
 	// User endpoints
 	api.Post("/signup", authHandler.SignUp)
@@ -104,13 +112,33 @@ func main() {
 	api.Get("/users", authHandler.GetUsers)
 	api.Delete("/users/:id", authHandler.DeleteUser)
 
+	// Settings endpoints
+	api.Get("/settings/base-url", settingsHandler.GetBaseURL)
+	api.Put("/settings/base-url", settingsHandler.SetBaseURL)
+
 	// Create and hold own TCP listener (not using fiber's listener)
 	addr := ":" + os.Getenv("PORT")
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		internal.Error.Fatalf("Failed to listen on %s: %v", addr, err)
 	}
-	internal.Info.Printf("Listening on %s", addr)
+
+	// Serve over HTTPS if a certificate and key are provided
+	certFile := os.Getenv("TLS_CERT_FILE")
+	keyFile := os.Getenv("TLS_KEY_FILE")
+	if certFile != "" && keyFile != "" {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			internal.Error.Fatalf("Failed to load TLS certificate/key: %v", err)
+		}
+		ln = tls.NewListener(ln, &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		})
+		internal.Info.Printf("TLS enabled, listening on %s (https)", addr)
+	} else {
+		internal.Info.Printf("Listening on %s (http)", addr)
+	}
 
 	go func() {
 		if err := app.Listener(ln); err != nil {

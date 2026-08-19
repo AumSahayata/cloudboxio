@@ -1,14 +1,17 @@
 package internal
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 )
 
-func ResolveFileNameConflict(userID, originalName string, isShared bool, db *sql.DB) (string, error) {
+func ResolveFileNameConflict(userID, originalName string, isPublic bool, db *sql.DB) (string, error) {
 	// Split name and extension
 	ext := filepath.Ext(originalName)
 	base := strings.TrimSuffix(originalName, ext)
@@ -21,12 +24,12 @@ func ResolveFileNameConflict(userID, originalName string, isShared bool, db *sql
 		var stmt string
 		var err error
 
-		// If shared then only check for filename to resolve conflict otherwise also consider user
-		if isShared {
-			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND is_shared = 1)`
+		// If public then only check for filename to resolve conflict otherwise also consider user
+		if isPublic {
+			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND is_public = 1)`
 			err = db.QueryRow(stmt, finalname).Scan(&exists)
 		} else {
-			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_shared = 0)`
+			stmt = `SELECT EXISTS(SELECT 1 FROM metadata WHERE filename = ? AND user_id = ? AND is_public = 0)`
 			err = db.QueryRow(stmt, finalname, userID).Scan(&exists)
 		}
 
@@ -45,6 +48,32 @@ func ResolveFileNameConflict(userID, originalName string, isShared bool, db *sql
 	}
 
 	return finalname, nil
+}
+
+// SanitizeFilename strips the path and control characters from a filename.
+// Both separators are handled so the result is the same on every OS.
+func SanitizeFilename(name string) string {
+	name = strings.ReplaceAll(name, "\\", "/")
+	name = path.Base(name)
+
+	// Remove control characters
+	var b strings.Builder
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f {
+			continue
+		}
+		b.WriteRune(r)
+	}
+
+	// Strip leading dots so "." and ".." cannot be used as a name
+	cleaned := strings.TrimSpace(b.String())
+	cleaned = strings.TrimLeft(cleaned, ".")
+	cleaned = strings.TrimSpace(cleaned)
+
+	if cleaned == "" {
+		return "file"
+	}
+	return cleaned
 }
 
 func CleanParam(param string) (string, error) {
@@ -101,4 +130,32 @@ func GetUsernameByID(id string, db *sql.DB) (string, error) {
 	}
 
 	return username, nil
+}
+
+func GenerateShareToken() (string, error) {
+	b := make([]byte, 16) // 16 bytes = 24 characters URL-safe string
+
+	if _, err := rand.Read(b); err != nil {
+		Error.Printf("failed to generate share token: %v", err)
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+func GetSetting(db *sql.DB, key string) (string, error) {
+	var value string
+	err := db.QueryRow(`SELECT value FROM settings WHERE key = ?`, key).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return value, err
+}
+
+func SetSetting(db *sql.DB, key, value string) error {
+	_, err := db.Exec(`
+		INSERT INTO settings (key, value) VALUES (?, ?)
+		ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+		key, value)
+	return err
 }

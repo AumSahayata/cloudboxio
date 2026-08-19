@@ -1,0 +1,19 @@
+services:
+  cloudboxio:
+    build: .
+    image: cloudboxio:latest
+    container_name: cloudboxio
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist app state (data.db, uploads, logs, .env) on the host.
+      - cloudboxio_data:/data
+    restart: unless-stopped
+    # Optional overrides (the app also writes these into /data/.env on first run):
+    # environment:
+    #   PORT: "3000"
+    #   JWT_EXPIRY_HOURS: "24"
+    #   MAX_UPLOAD_SIZE_MB: "100"
+
+volumes:
+  cloudboxio_data:
