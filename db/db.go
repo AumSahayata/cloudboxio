@@ -83,7 +83,7 @@ func InitDB() (*sql.DB, error) {
 	}
 
 	// Insert a default 'admin_setup_done' flag if it doesn't exist yet.
-	stmt := `INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_setup_done', 'false'), ('base_url', null))`
+	stmt := `INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_setup_done', 'false'), ('base_url', '')`
 	if _, err := db.Exec(stmt); err != nil {
 		log.Println("Failed to setup initial settings:", err)
 	}

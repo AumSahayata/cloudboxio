@@ -19,7 +19,6 @@ func NewSettingsHandler(database *sql.DB) *SettingsHandler {
 }
 
 func (h *SettingsHandler) GetBaseURL(c *fiber.Ctx) error {
-	// userID := c.Locals("user_id").(string)
 	isAdmin := c.Locals("is_admin").(bool)
 
 	if !isAdmin {
@@ -34,7 +33,6 @@ func (h *SettingsHandler) GetBaseURL(c *fiber.Ctx) error {
 }
 
 func (h *SettingsHandler) SetBaseURL(c *fiber.Ctx) error {
-	// userID := c.Locals("user_id").(string)
 	isAdmin := c.Locals("is_admin").(bool)
 
 	if !isAdmin {
